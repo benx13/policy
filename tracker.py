@@ -71,7 +71,7 @@ class CentroidTracker():
 				direction = self.get_direction(objectCentroids[0], inputCentroids[0])
 
 				condition = D[row, col] < self.minDistanece
-				print(f'-----{direction}')
+				#print(f'-----{direction}')
 				if self.direction:
 					condition = (D[row, col] < self.minDistanece) and (direction in self.direction )
 				if condition:
