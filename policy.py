@@ -61,7 +61,7 @@ machine_id_dict = {}
 ##############################################
 
 ################INIT_MODEL############################
-MODEL_PATH = 'models/last.mlpackage'
+MODEL_PATH = 'models/bluenano.mlpackage'
 CONFIDENCE_THRESHOLD = 0.5
 IOU_THRESHOLD = 0.8
 model = coremltools.models.MLModel(MODEL_PATH)
@@ -94,6 +94,8 @@ tests:
 bag1:   changed machine temp from 3 to 5
         anomaly at 4:36 caused by model false postive
         can be fixed by blue filter
+        anomaly at 5:53 4th handle going backward fix by
+        tuning zone and adding directions
 '''
 skip_frames = int(frame_rate * skip_time)
 cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
@@ -122,8 +124,10 @@ while True:
     backward_rects = []
     machine_rects = []
     if BLUE:
-        img = get_blue(img)
-    input = preprocess_img(img)
+        blues = get_blue(img)
+        input = preprocess_img(blues)
+    else:
+        input = preprocess_img(img)
     mstart = time.time()
     results = model.predict({'image': input, 
                              'iouThreshold': IOU_THRESHOLD, 
