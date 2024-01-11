@@ -4,7 +4,7 @@ from PIL import Image
 import numpy as np
 import time
 from utils import *  
-from _tracker import CentroidTracker
+from tracker import CentroidTracker
 from collections import defaultdict
 from circular_buffer import CircularBuffer
 
@@ -19,20 +19,33 @@ stats = {'grab': 0,
 logger = []
 ##############################################
 
-################INIT_TRACKER############################
+###################HYPER_PARAMS###########################
 GRAB_ZONE = (750, 0, 1000, 270)
+FORWARD_ZONE = (166, 263, 560, 450)
+BACKWARD_ZONE = (970, 270, 1300, 450)
+MACHINE_ZONE = (560, 270, 800, 450)
+
+FORWARD_DIRECTIONS = ['left', 'up left', 'down left', 'up', 'down']
+
+GRAB_TEMPRATURE = 3
+FORWARD_TEMPRATURE = 3
+BACKWARD_TEMPRATURE = 3
+MACHINE_TEMPRATURE = 6
+
+BLUE = True
+##############################################
+
+################INIT_TRACKER############################
 grab_tracker = CentroidTracker(maxDisappeared=300)
 grab_history = defaultdict(lambda: [])
 tracking_history_grab = CircularBuffer(20)
 grab_id_dict = {}
 ##############################################
-FORWARD_ZONE = (166, 263, 560, 450)
-forward_tracker = CentroidTracker(maxDisappeared=300, direction=['left', 'up left', 'down left', 'up', 'down'])
+forward_tracker = CentroidTracker(maxDisappeared=300, direction=FORWARD_DIRECTIONS)
 forward_history = defaultdict(lambda: [])
 tracking_history_forward = CircularBuffer(20)
 forward_id_dict = {}
 ##############################################
-BACKWARD_ZONE = (970, 270, 1300, 450)
 backward_tracker = CentroidTracker(maxDisappeared=300)#, direction=['left', 'up left', 'down left', 'up', 'down'])
 #TODO directoinal tracker doesnt work here
 #behaviour when object goes into oposit direction and comes back it doesn't get registred
@@ -41,7 +54,6 @@ backward_history = defaultdict(lambda: [])
 tracking_history_backward = CircularBuffer(20)
 backward_id_dict = {}
 ##############################################
-MACHINE_ZONE = (560, 270, 800, 450)
 machine_tracker = CentroidTracker(maxDisappeared=300)
 machine_history = defaultdict(lambda: [])
 tracking_history_machine = CircularBuffer(20)
@@ -56,12 +68,33 @@ model = coremltools.models.MLModel(MODEL_PATH)
 ##############################################
 
 ################INIT_CAP############################
-VIDEO_FILE = 'videos/output.mp4'
+VIDEO_FILE = 'videos/IMG_2114.MOV'
 cap = cv2.VideoCapture(VIDEO_FILE)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
 skip_time = 0*60+0
 #skip_time = 8*60+30
 #skip_time = 0*60+22
+#skip_time = 4*60+36
+'''
+Vid checkpoints
+Bag1 : 0
+Bag2: 8:33
+Bag3: 16:15
+Bag4:26 
+Bag5:34
+Bag6:40
+Bag7:52:30
+Bag8:59:15
+Bag9::1:05:55
+Bag10: 1:14:20
+Bag11:1:20:00
+
+------
+tests:
+bag1:   changed machine temp from 3 to 5
+        anomaly at 4:36 caused by model false postive
+        can be fixed by blue filter
+'''
 skip_frames = int(frame_rate * skip_time)
 cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
 ##############################################
@@ -82,17 +115,14 @@ while True:
     start = time.time()
     success, img = cap.read()
     plot_time_on_frame(img, cap, frame_rate)
-    overlay_region(img, GRAB_ZONE, alpha=0.5)
-    overlay_region(img, FORWARD_ZONE, alpha=0.5)
-    overlay_region(img, BACKWARD_ZONE, alpha=0.5)
-    overlay_region(img, MACHINE_ZONE, alpha=0.5)
-    overlay_region(img, STATS_ZONE, alpha=1)
+ 
 
     grab_rects = []
     forward_rects = []
     backward_rects = []
     machine_rects = []
-
+    if BLUE:
+        img = get_blue(img)
     input = preprocess_img(img)
     mstart = time.time()
     results = model.predict({'image': input, 
@@ -139,7 +169,7 @@ while True:
     #print(grab_id_dict)
     if(grab_tracker.flag):
         if(grab_id_dict[str(grab_tracker.count)] == 0):
-            if(tracking_history_grab.sum() > 3):
+            if(tracking_history_grab.sum() > GRAB_TEMPRATURE):
                 grab_id_dict[str(grab_tracker.count)] = 1
                 stats['grab'] += 1 
 
@@ -148,7 +178,7 @@ while True:
     #print(forward_id_dict)
     if(forward_tracker.flag):
         if(forward_id_dict[str(forward_tracker.count)] == 0):
-            if(tracking_history_forward.sum() > 3):
+            if(tracking_history_forward.sum() > FORWARD_TEMPRATURE):
                 forward_id_dict[str(forward_tracker.count)] = 1
                 stats['forward'] += 1 
 
@@ -157,26 +187,31 @@ while True:
     #print(backward_id_dict)
     if(backward_tracker.flag):
         if(backward_id_dict[str(backward_tracker.count)] == 0):
-            if(tracking_history_backward.sum() > 3):
+            if(tracking_history_backward.sum() > BACKWARD_TEMPRATURE):
                 backward_id_dict[str(backward_tracker.count)] = 1
                 stats['backward'] += 1 
 
     tracking_history_machine.append(machine_tracker.flag)
-    #print(tracking_history_machine)
-    #print(machine_id_dict)
+    print(tracking_history_machine)
+    print(machine_id_dict)
     if(machine_tracker.flag):
         if(machine_id_dict[str(machine_tracker.count)] == 0):
-            if(tracking_history_machine.sum() > 3):
+            if(tracking_history_machine.sum() > MACHINE_TEMPRATURE):
                 machine_id_dict[str(machine_tracker.count)] = 1
                 stats['machine'] += 1 
 
-
+    overlay_region(img, GRAB_ZONE, alpha=0.5)
+    overlay_region(img, FORWARD_ZONE, alpha=0.5)
+    overlay_region(img, BACKWARD_ZONE, alpha=0.5)
+    overlay_region(img, MACHINE_ZONE, alpha=0.5)
+    overlay_region(img, STATS_ZONE, alpha=1)
     plot_stats(img, STATS_ZONE, stats)
     cv2.imshow('Window', img)
     stop = time.time()
     inference = mstop - mstart
     total = stop - start
     print(f'total time:{total*1000} inference time: {inference*1000}')
+    print(stats)
     if cv2.waitKey(1) == ord('q'):
         break
 

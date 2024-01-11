@@ -119,3 +119,10 @@ def preprocess_img(img):
     processed_img = cv2.resize(img, (384, 224))
     processed_img = cv2.cvtColor(processed_img, cv2.COLOR_BGR2RGB)
     return Image.fromarray(processed_img)
+
+def get_blue(img):
+    hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    lower_blue = np.array([100, 40, 40])  # Lower end of the blue spectrum
+    upper_blue = np.array([140, 255, 255])
+    blue_mask = cv2.inRange(hsv_image, lower_blue, upper_blue)
+    bluees = cv2.bitwise_and(img, img, mask=blue_mask)
