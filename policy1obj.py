@@ -4,7 +4,7 @@ from PIL import Image
 import numpy as np
 import time
 from utils import *  
-from tracker import CentroidTracker
+from _tracker import CentroidTracker
 from collections import defaultdict
 from circular_buffer import CircularBuffer
 
@@ -38,9 +38,9 @@ model = coremltools.models.MLModel(MODEL_PATH)
 VIDEO_FILE = 'videos/output.mp4'
 cap = cv2.VideoCapture(VIDEO_FILE)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
-#skip_time = 0*60+30
+skip_time = 0*60+30
 #skip_time = 8*60+30
-skip_time = 0*60+0
+#skip_time = 0*60+22
 skip_frames = int(frame_rate * skip_time)
 cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
 ##############################################
@@ -65,7 +65,6 @@ while True:
     overlay_region(img, STATS_ZONE, alpha=1)
 
     #zone flags
-    appeared = 0
     zone_rects = []
 
     input = preprocess_img(img)
@@ -80,27 +79,21 @@ while True:
             x, y, x1, y1, x2, y2 = get_coordinates(img, xn, yn, widthn, heightn)
             plot_rectangles1(img, x1,y1,x2,y2,confidence)
 
-            #push to trackers
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),ZONE)):
-                appeared = 1
                 zone_rects.append([x1,y1,x2,y2])
-                #update trackers
-                zone_objects = zone_tracker.update(zone_rects)
-                #print(zone_objects)
-                plot_path(img, zone_objects, zone_tracker, zone_history)
-                #stats['zone'] = zone_tracker.count
-                if(str(zone_tracker.count) not in id_dict.keys()):
-                    id_dict[str(zone_tracker.count)] = 0
+            zone_objects = zone_tracker.update(zone_rects)
+            plot_path(img, zone_objects, zone_tracker, zone_history)
+            if(str(zone_tracker.count) not in id_dict.keys()):
+                id_dict[str(zone_tracker.count)] = 0
 
-                tracking_history_zone.append(zone_tracker.flag)
-                print(tracking_history_zone)
-                if(id_dict[str(zone_tracker.count)] == 0):
-                    if(tracking_history_zone.sum() > 3):
-                        id_dict[str(zone_tracker.count)] = 1
-                        stats['zone'] += 1 
-            else:
-                tracking_history_zone.append(0)
-
+    tracking_history_zone.append(zone_tracker.flag)
+    print(tracking_history_zone)
+    print(id_dict)
+    if(zone_tracker.flag):
+        if(id_dict[str(zone_tracker.count)] == 0):
+            if(tracking_history_zone.sum() > 3):
+                id_dict[str(zone_tracker.count)] = 1
+                stats['zone'] += 1 
 
     plot_stats(img, STATS_ZONE, stats)
     cv2.imshow('Window', img)

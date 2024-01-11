@@ -22,8 +22,7 @@ class CentroidTracker():
 	def deregister(self, objectID):
 		del self.objects[objectID]
 		del self.disappeared[objectID]
-	
-	
+
 	def get_direction(self, currentCentroid, newCentroid):
 		x1, y1 = currentCentroid
 		x2, y2 = newCentroid
@@ -40,7 +39,7 @@ class CentroidTracker():
 		elif y2 < y1:
 			direction_y = "up"
 		return f'{direction_y} {direction_x}'
-	
+
 	def update(self, rects):
 		self.flag = 0
 		if len(rects) == 0:
@@ -72,13 +71,13 @@ class CentroidTracker():
 				direction = self.get_direction(objectCentroids[0], inputCentroids[0])
 
 				condition = D[row, col] < self.minDistanece
-				print(direction)
+				print(f'-----{direction}')
 				if self.direction:
-					condition &= (direction in self.direction )
+					condition = (D[row, col] < self.minDistanece) and (direction in self.direction )
 				if condition:
-						self.flag = 1
-						self.objects[objectID] = inputCentroids[col]
-						self.disappeared[objectID] = 0
+					self.flag = 1
+					self.objects[objectID] = inputCentroids[col]
+					self.disappeared[objectID] = 0
 				usedRows.add(row)
 				usedCols.add(col)
 			unusedRows = set(range(0, D.shape[0])).difference(usedRows)
