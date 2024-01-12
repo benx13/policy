@@ -36,7 +36,7 @@ BLUE = True
 ##############################################
 
 ################INIT_TRACKER############################
-grab_tracker = CentroidTracker(maxDisappeared=300)
+grab_tracker = CentroidTracker(maxDisappeared=1)
 grab_history = defaultdict(lambda: [])
 tracking_history_grab = CircularBuffer(20)
 grab_id_dict = {}
@@ -54,7 +54,7 @@ backward_history = defaultdict(lambda: [])
 tracking_history_backward = CircularBuffer(20)
 backward_id_dict = {}
 ##############################################
-machine_tracker = CentroidTracker(maxDisappeared=300)
+machine_tracker = CentroidTracker(maxDisappeared=350)
 machine_history = defaultdict(lambda: [])
 tracking_history_machine = CircularBuffer(20)
 machine_id_dict = {}
@@ -123,6 +123,11 @@ while True:
     forward_rects = []
     backward_rects = []
     machine_rects = []
+
+    grab_appeared_flag = 0
+    forward_appeared_flag = 0
+    backward_appeared_flag = 0
+    machine_appeared_flag = 0
     if BLUE:
         blues = get_blue(img)
         input = preprocess_img(blues)
@@ -140,6 +145,7 @@ while True:
             plot_rectangles1(img, x1,y1,x2,y2,confidence)
 
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE)):
+                grab_appeared_flag = 1
                 grab_rects.append([x1,y1,x2,y2])
             grab_objects = grab_tracker.update(grab_rects)
             plot_path(img, grab_objects, grab_tracker, grab_history)
@@ -147,6 +153,7 @@ while True:
                 grab_id_dict[str(grab_tracker.count)] = 0
 
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),FORWARD_ZONE)):
+                forward_appeared_flag = 1
                 forward_rects.append([x1,y1,x2,y2])
             forward_objects = forward_tracker.update(forward_rects)
             plot_path(img, forward_objects, forward_tracker, forward_history)
@@ -154,6 +161,7 @@ while True:
                 forward_id_dict[str(forward_tracker.count)] = 0
 
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),BACKWARD_ZONE)):
+                backward_appeared_flag = 1
                 backward_rects.append([x1,y1,x2,y2])
             backward_objects = backward_tracker.update(backward_rects)
             plot_path(img, backward_objects, backward_tracker, backward_history)
@@ -161,6 +169,7 @@ while True:
                 backward_id_dict[str(backward_tracker.count)] = 0
 
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE)):
+                machine_appeared_flag = 1
                 machine_rects.append([x1,y1,x2,y2])
             machine_objects = machine_tracker.update(machine_rects)
             plot_path(img, machine_objects, machine_tracker, machine_history)
@@ -168,8 +177,10 @@ while True:
                 machine_id_dict[str(machine_tracker.count)] = 0
 
     
-    tracking_history_grab.append(grab_tracker.flag)
-    #print(tracking_history_grab)
+    if(grab_appeared_flag == 1):
+        tracking_history_grab.append(grab_tracker.flag)
+    else:
+        tracking_history_grab.append(0)    #print(tracking_history_grab)
     #print(grab_id_dict)
     if(grab_tracker.flag):
         if(grab_id_dict[str(grab_tracker.count)] == 0):
@@ -177,8 +188,10 @@ while True:
                 grab_id_dict[str(grab_tracker.count)] = 1
                 stats['grab'] += 1 
 
-    tracking_history_forward.append(forward_tracker.flag)
-    #print(tracking_history_forward)
+    if(forward_appeared_flag == 1):
+        tracking_history_forward.append(forward_tracker.flag)
+    else:
+        tracking_history_forward.append(0)    #print(tracking_history_forward)
     #print(forward_id_dict)
     if(forward_tracker.flag):
         if(forward_id_dict[str(forward_tracker.count)] == 0):
@@ -186,7 +199,10 @@ while True:
                 forward_id_dict[str(forward_tracker.count)] = 1
                 stats['forward'] += 1 
 
-    tracking_history_backward.append(backward_tracker.flag)
+    if(backward_appeared_flag == 1):
+        tracking_history_backward.append(backward_tracker.flag)
+    else:
+        tracking_history_backward.append(0)
     #print(tracking_history_backward)
     #print(backward_id_dict)
     if(backward_tracker.flag):
@@ -195,7 +211,10 @@ while True:
                 backward_id_dict[str(backward_tracker.count)] = 1
                 stats['backward'] += 1 
 
-    tracking_history_machine.append(machine_tracker.flag)
+    if(machine_appeared_flag == 1):
+        tracking_history_machine.append(machine_tracker.flag)
+    else:
+        tracking_history_machine.append(0)
     print(tracking_history_machine)
     print(machine_id_dict)
     if(machine_tracker.flag):
