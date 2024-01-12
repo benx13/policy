@@ -147,7 +147,7 @@ while True:
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE)):
                 grab_appeared_flag = 1
                 grab_rects.append([x1,y1,x2,y2])
-            grab_objects = grab_tracker.update(grab_rects)
+            grab_objects = grab_tracker.update([grab_rects[0]] if grab_rects else [])
             plot_path(img, grab_objects, grab_tracker, grab_history)
             if(str(grab_tracker.count) not in grab_id_dict.keys()):
                 grab_id_dict[str(grab_tracker.count)] = 0
@@ -155,7 +155,7 @@ while True:
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),FORWARD_ZONE)):
                 forward_appeared_flag = 1
                 forward_rects.append([x1,y1,x2,y2])
-            forward_objects = forward_tracker.update(forward_rects)
+            forward_objects = forward_tracker.update([forward_rects[0]] if forward_rects else [])
             plot_path(img, forward_objects, forward_tracker, forward_history)
             if(str(forward_tracker.count) not in forward_id_dict.keys()):
                 forward_id_dict[str(forward_tracker.count)] = 0
@@ -163,7 +163,7 @@ while True:
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),BACKWARD_ZONE)):
                 backward_appeared_flag = 1
                 backward_rects.append([x1,y1,x2,y2])
-            backward_objects = backward_tracker.update(backward_rects)
+            backward_objects = backward_tracker.update([backward_rects[0]] if backward_rects else [])
             plot_path(img, backward_objects, backward_tracker, backward_history)
             if(str(backward_tracker.count) not in backward_id_dict.keys()):
                 backward_id_dict[str(backward_tracker.count)] = 0
@@ -171,7 +171,7 @@ while True:
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE)):
                 machine_appeared_flag = 1
                 machine_rects.append([x1,y1,x2,y2])
-            machine_objects = machine_tracker.update(machine_rects)
+            machine_objects = machine_tracker.update([machine_rects[0]] if machine_rects else [])
             plot_path(img, machine_objects, machine_tracker, machine_history)
             if(str(machine_tracker.count) not in machine_id_dict.keys()):
                 machine_id_dict[str(machine_tracker.count)] = 0
