@@ -126,3 +126,4 @@ def get_blue(img):
     upper_blue = np.array([140, 255, 255])
     blue_mask = cv2.inRange(hsv_image, lower_blue, upper_blue)
     bluees = cv2.bitwise_and(img, img, mask=blue_mask)
+    return bluees
