@@ -23,20 +23,20 @@ logger = []
 GRAB_ZONE = (750, 0, 1000, 270)
 FORWARD_ZONE = (166, 263, 560, 450)
 BACKWARD_ZONE = (970, 270, 1300, 450)
-MACHINE_ZONE = (560, 270, 800, 450)
+MACHINE_ZONE = (525, 270, 800, 450)
 
 FORWARD_DIRECTIONS = ['left', 'up left', 'down left', 'up', 'down']
 
 GRAB_TEMPRATURE = 3
 FORWARD_TEMPRATURE = 3
 BACKWARD_TEMPRATURE = 3
-MACHINE_TEMPRATURE = 6
+MACHINE_TEMPRATURE = 10
 
 BLUE = True
 ##############################################
 
 ################INIT_TRACKER############################
-grab_tracker = CentroidTracker(maxDisappeared=1)
+grab_tracker = CentroidTracker(maxDisappeared=300)
 grab_history = defaultdict(lambda: [])
 tracking_history_grab = CircularBuffer(20)
 grab_id_dict = {}
@@ -54,9 +54,9 @@ backward_history = defaultdict(lambda: [])
 tracking_history_backward = CircularBuffer(20)
 backward_id_dict = {}
 ##############################################
-machine_tracker = CentroidTracker(maxDisappeared=350)
+machine_tracker = CentroidTracker(maxDisappeared=350, direction=FORWARD_DIRECTIONS)
 machine_history = defaultdict(lambda: [])
-tracking_history_machine = CircularBuffer(20)
+tracking_history_machine = CircularBuffer(40)
 machine_id_dict = {}
 ##############################################
 
@@ -71,7 +71,7 @@ model = coremltools.models.MLModel(MODEL_PATH)
 VIDEO_FILE = 'videos/IMG_2114.MOV'
 cap = cv2.VideoCapture(VIDEO_FILE)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
-skip_time = 0*60+0
+skip_time = 3*60+48
 #skip_time = 8*60+30
 #skip_time = 0*60+22
 #skip_time = 4*60+36
@@ -128,11 +128,14 @@ while True:
     forward_appeared_flag = 0
     backward_appeared_flag = 0
     machine_appeared_flag = 0
+    resized_img = cv2.resize(img, (384, 224))
+
     if BLUE:
-        blues = get_blue(img)
+        blues = get_blue(resized_img)
         input = preprocess_img(blues)
     else:
-        input = preprocess_img(img)
+        input = preprocess_img(resized_img)
+
     mstart = time.time()
     results = model.predict({'image': input, 
                              'iouThreshold': IOU_THRESHOLD, 
@@ -147,7 +150,7 @@ while True:
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE)):
                 grab_appeared_flag = 1
                 grab_rects.append([x1,y1,x2,y2])
-            grab_objects = grab_tracker.update([grab_rects[0]] if grab_rects else [])
+                grab_objects, grab_tracked_flag = grab_tracker.update([grab_rects[0]] if grab_rects else [])
             plot_path(img, grab_objects, grab_tracker, grab_history)
             if(str(grab_tracker.count) not in grab_id_dict.keys()):
                 grab_id_dict[str(grab_tracker.count)] = 0
@@ -155,7 +158,7 @@ while True:
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),FORWARD_ZONE)):
                 forward_appeared_flag = 1
                 forward_rects.append([x1,y1,x2,y2])
-            forward_objects = forward_tracker.update([forward_rects[0]] if forward_rects else [])
+                forward_objects, forward_tracked_flag = forward_tracker.update([forward_rects[0]] if forward_rects else [])
             plot_path(img, forward_objects, forward_tracker, forward_history)
             if(str(forward_tracker.count) not in forward_id_dict.keys()):
                 forward_id_dict[str(forward_tracker.count)] = 0
@@ -163,7 +166,7 @@ while True:
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),BACKWARD_ZONE)):
                 backward_appeared_flag = 1
                 backward_rects.append([x1,y1,x2,y2])
-            backward_objects = backward_tracker.update([backward_rects[0]] if backward_rects else [])
+                backward_objects, backward_tracked_flag = backward_tracker.update([backward_rects[0]] if backward_rects else [])
             plot_path(img, backward_objects, backward_tracker, backward_history)
             if(str(backward_tracker.count) not in backward_id_dict.keys()):
                 backward_id_dict[str(backward_tracker.count)] = 0
@@ -171,53 +174,53 @@ while True:
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE)):
                 machine_appeared_flag = 1
                 machine_rects.append([x1,y1,x2,y2])
-            machine_objects = machine_tracker.update([machine_rects[0]] if machine_rects else [])
+                machine_objects, machine_tracked_flag = machine_tracker.update([machine_rects[0]] if machine_rects else [])
             plot_path(img, machine_objects, machine_tracker, machine_history)
             if(str(machine_tracker.count) not in machine_id_dict.keys()):
                 machine_id_dict[str(machine_tracker.count)] = 0
 
     
     if(grab_appeared_flag == 1):
-        tracking_history_grab.append(grab_tracker.flag)
+        tracking_history_grab.append(grab_tracked_flag)
     else:
-        tracking_history_grab.append(0)    #print(tracking_history_grab)
-    #print(grab_id_dict)
-    if(grab_tracker.flag):
+        tracking_history_grab.append(0)    ##print(tracking_history_grab)
+    ##print(grab_id_dict)
+    if(grab_tracked_flag):
         if(grab_id_dict[str(grab_tracker.count)] == 0):
             if(tracking_history_grab.sum() > GRAB_TEMPRATURE):
                 grab_id_dict[str(grab_tracker.count)] = 1
                 stats['grab'] += 1 
 
     if(forward_appeared_flag == 1):
-        tracking_history_forward.append(forward_tracker.flag)
+        tracking_history_forward.append(forward_tracked_flag)
     else:
-        tracking_history_forward.append(0)    #print(tracking_history_forward)
-    #print(forward_id_dict)
-    if(forward_tracker.flag):
+        tracking_history_forward.append(0)    ##print(tracking_history_forward)
+    ##print(forward_id_dict)
+    if(forward_tracked_flag):
         if(forward_id_dict[str(forward_tracker.count)] == 0):
             if(tracking_history_forward.sum() > FORWARD_TEMPRATURE):
                 forward_id_dict[str(forward_tracker.count)] = 1
                 stats['forward'] += 1 
 
     if(backward_appeared_flag == 1):
-        tracking_history_backward.append(backward_tracker.flag)
+        tracking_history_backward.append(backward_tracked_flag)
     else:
         tracking_history_backward.append(0)
-    #print(tracking_history_backward)
-    #print(backward_id_dict)
-    if(backward_tracker.flag):
+    ##print(tracking_history_backward)
+    ##print(backward_id_dict)
+    if(backward_tracked_flag):
         if(backward_id_dict[str(backward_tracker.count)] == 0):
             if(tracking_history_backward.sum() > BACKWARD_TEMPRATURE):
                 backward_id_dict[str(backward_tracker.count)] = 1
                 stats['backward'] += 1 
 
     if(machine_appeared_flag == 1):
-        tracking_history_machine.append(machine_tracker.flag)
+        tracking_history_machine.append(machine_tracked_flag)
     else:
         tracking_history_machine.append(0)
-    print(tracking_history_machine)
-    print(machine_id_dict)
-    if(machine_tracker.flag):
+    #print(tracking_history_machine)
+    #print(machine_id_dict)
+    if(machine_tracked_flag):
         if(machine_id_dict[str(machine_tracker.count)] == 0):
             if(tracking_history_machine.sum() > MACHINE_TEMPRATURE):
                 machine_id_dict[str(machine_tracker.count)] = 1
@@ -230,11 +233,12 @@ while True:
     overlay_region(img, STATS_ZONE, alpha=1)
     plot_stats(img, STATS_ZONE, stats)
     cv2.imshow('Window', img)
+
     stop = time.time()
-    inference = mstop - mstart
     total = stop - start
+    inference = mstop - mstart
     print(f'total time:{total*1000} inference time: {inference*1000}')
-    print(stats)
+    #print(stats)
     if cv2.waitKey(1) == ord('q'):
         break
 
