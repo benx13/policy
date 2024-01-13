@@ -23,14 +23,14 @@ logger = []
 GRAB_ZONE = (750, 0, 1000, 270)
 FORWARD_ZONE = (166, 263, 560, 450)
 BACKWARD_ZONE = (970, 270, 1300, 450)
-MACHINE_ZONE = (525, 270, 800, 450)
+MACHINE_ZONE = (525, 270, 850, 450)
 
 FORWARD_DIRECTIONS = ['left', 'up left', 'down left', 'up', 'down']
 
 GRAB_TEMPRATURE = 3
 FORWARD_TEMPRATURE = 3
 BACKWARD_TEMPRATURE = 3
-MACHINE_TEMPRATURE = 10
+MACHINE_TEMPRATURE = 7
 
 BLUE = True
 ##############################################
@@ -71,9 +71,9 @@ model = coremltools.models.MLModel(MODEL_PATH)
 VIDEO_FILE = 'videos/IMG_2114.MOV'
 cap = cv2.VideoCapture(VIDEO_FILE)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
-skip_time = 3*60+48
+#skip_time = 3*60+48
 #skip_time = 8*60+30
-#skip_time = 0*60+22
+skip_time = 0*60+22
 #skip_time = 4*60+36
 '''
 Vid checkpoints
@@ -128,6 +128,14 @@ while True:
     forward_appeared_flag = 0
     backward_appeared_flag = 0
     machine_appeared_flag = 0
+
+#TODOOO check if update should be inside
+    grab_tracked_flag = 0
+    forward_tracked_flag = 0
+    backward_tracked_flag = 0
+    machine_tracked_flag = 0
+
+
     resized_img = cv2.resize(img, (384, 224))
 
     if BLUE:
@@ -150,40 +158,29 @@ while True:
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE)):
                 grab_appeared_flag = 1
                 grab_rects.append([x1,y1,x2,y2])
-                grab_objects, grab_tracked_flag = grab_tracker.update([grab_rects[0]] if grab_rects else [])
-            plot_path(img, grab_objects, grab_tracker, grab_history)
-            if(str(grab_tracker.count) not in grab_id_dict.keys()):
-                grab_id_dict[str(grab_tracker.count)] = 0
 
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),FORWARD_ZONE)):
                 forward_appeared_flag = 1
                 forward_rects.append([x1,y1,x2,y2])
-                forward_objects, forward_tracked_flag = forward_tracker.update([forward_rects[0]] if forward_rects else [])
-            plot_path(img, forward_objects, forward_tracker, forward_history)
-            if(str(forward_tracker.count) not in forward_id_dict.keys()):
-                forward_id_dict[str(forward_tracker.count)] = 0
 
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),BACKWARD_ZONE)):
                 backward_appeared_flag = 1
                 backward_rects.append([x1,y1,x2,y2])
-                backward_objects, backward_tracked_flag = backward_tracker.update([backward_rects[0]] if backward_rects else [])
-            plot_path(img, backward_objects, backward_tracker, backward_history)
-            if(str(backward_tracker.count) not in backward_id_dict.keys()):
-                backward_id_dict[str(backward_tracker.count)] = 0
 
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE)):
                 machine_appeared_flag = 1
                 machine_rects.append([x1,y1,x2,y2])
-                machine_objects, machine_tracked_flag = machine_tracker.update([machine_rects[0]] if machine_rects else [])
-            plot_path(img, machine_objects, machine_tracker, machine_history)
-            if(str(machine_tracker.count) not in machine_id_dict.keys()):
-                machine_id_dict[str(machine_tracker.count)] = 0
 
     
+    grab_objects, grab_tracked_flag = grab_tracker.update([grab_rects[0]] if grab_rects else [])
+    plot_path(img, grab_objects, grab_tracker, grab_history)
+    if(str(grab_tracker.count) not in grab_id_dict.keys()):
+        grab_id_dict[str(grab_tracker.count)] = 0
     if(grab_appeared_flag == 1):
         tracking_history_grab.append(grab_tracked_flag)
     else:
-        tracking_history_grab.append(0)    ##print(tracking_history_grab)
+        tracking_history_grab.append(0)    
+    ##print(tracking_history_grab)
     ##print(grab_id_dict)
     if(grab_tracked_flag):
         if(grab_id_dict[str(grab_tracker.count)] == 0):
@@ -191,10 +188,16 @@ while True:
                 grab_id_dict[str(grab_tracker.count)] = 1
                 stats['grab'] += 1 
 
+
+    forward_objects, forward_tracked_flag = forward_tracker.update([forward_rects[0]] if forward_rects else [])
+    plot_path(img, forward_objects, forward_tracker, forward_history)
+    if(str(forward_tracker.count) not in forward_id_dict.keys()):
+        forward_id_dict[str(forward_tracker.count)] = 0
     if(forward_appeared_flag == 1):
         tracking_history_forward.append(forward_tracked_flag)
     else:
-        tracking_history_forward.append(0)    ##print(tracking_history_forward)
+        tracking_history_forward.append(0)    
+    ##print(tracking_history_forward)
     ##print(forward_id_dict)
     if(forward_tracked_flag):
         if(forward_id_dict[str(forward_tracker.count)] == 0):
@@ -202,6 +205,11 @@ while True:
                 forward_id_dict[str(forward_tracker.count)] = 1
                 stats['forward'] += 1 
 
+
+    backward_objects, backward_tracked_flag = backward_tracker.update([backward_rects[0]] if backward_rects else [])
+    plot_path(img, backward_objects, backward_tracker, backward_history)
+    if(str(backward_tracker.count) not in backward_id_dict.keys()):
+        backward_id_dict[str(backward_tracker.count)] = 0
     if(backward_appeared_flag == 1):
         tracking_history_backward.append(backward_tracked_flag)
     else:
@@ -214,6 +222,11 @@ while True:
                 backward_id_dict[str(backward_tracker.count)] = 1
                 stats['backward'] += 1 
 
+
+    machine_objects, machine_tracked_flag = machine_tracker.update([machine_rects[0]] if machine_rects else [])
+    plot_path(img, machine_objects, machine_tracker, machine_history)
+    if(str(machine_tracker.count) not in machine_id_dict.keys()):
+        machine_id_dict[str(machine_tracker.count)] = 0    
     if(machine_appeared_flag == 1):
         tracking_history_machine.append(machine_tracked_flag)
     else:
