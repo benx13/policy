@@ -23,7 +23,7 @@ logger = []
 
 MACHINE_ZONE = (970, 270, 1300, 450)
 
-FORWARD_DIRECTIONS = [' left']#, 'up left', 'down left']#, 'up left', 'down left', 'up', 'down', ' ']
+FORWARD_DIRECTIONS = [' right', ' ']#, 'up right', 'down right']#, 'up left', 'down left']#, 'up left', 'down left', 'up', 'down', ' ']
 
 MACHINE_TEMPRATURE = 10
 
@@ -50,7 +50,7 @@ cap = cv2.VideoCapture(VIDEO_FILE)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
 #skip_time = 3*60+50
 #skip_time = 8*60+30
-skip_time = 5*60+50
+skip_time = 14*60+30
 #skip_time = 4*60+36
 '''
 Vid checkpoints

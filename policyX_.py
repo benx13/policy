@@ -21,14 +21,14 @@ logger = []
 ##############################################
 
 ###################HYPER_PARAMS###########################
-GRAB_ZONE = (750, 0, 1000, 270)
+GRAB_ZONE = (750, 0, 1000, 250)
 FORWARD_ZONE = (166, 263, 560, 450)
 BACKWARD_ZONE = (970, 270, 1300, 450)
 MACHINE_ZONE = (525, 270, 850, 450)
 TABLE_ZONE = (525, 370, 970, 1075)
 
 FORWARD_DIRECTIONS = [' left', 'up left', 'down left', 'up', 'down', ' ']
-FORWARD_DIRECTIONS = [' left', 'up left', 'down left']
+BACKWARD_DIRECTIONS = [' right', ' ']
 
 GRAB_TEMPRATURE = 3
 FORWARD_TEMPRATURE = 7
@@ -44,15 +44,12 @@ grab_history = defaultdict(lambda: [])
 tracking_history_grab = CircularBuffer(20)
 grab_id_dict = {}
 ##############################################
-forward_tracker = CentroidTracker(maxDisappeared=300, direction=FORWARD_DIRECTIONS)
+forward_tracker = CentroidTracker(maxDisappeared=300, direction=[' left', 'up left', 'down left'])
 forward_history = defaultdict(lambda: [])
 tracking_history_forward = CircularBuffer(40)
 forward_id_dict = {}
 ##############################################
-backward_tracker = CentroidTracker(maxDisappeared=150, direction=FORWARD_DIRECTIONS)
-#TODO directoinal tracker doesnt work here
-#behaviour when object goes into oposit direction and comes back it doesn't get registred
-#as new one and rather keeps gettting ignored by tracker
+backward_tracker = CentroidTracker(maxDisappeared=150, direction=BACKWARD_DIRECTIONS)
 backward_history = defaultdict(lambda: [])
 tracking_history_backward = CircularBuffer(40)
 backward_id_dict = {}
@@ -99,8 +96,25 @@ bag1:   changed machine temp from 3 to 5
         can be fixed by blue filter
         anomaly at 5:53 4th handle going backward fix by
         tuning zone and adding directions
+        ------------
+        test case passed:
+        events: g1->m1->f1->g2->b1->m2->g3->m3->f2->g4->b2->m4
+        accuracy of events: 100%
+
+bag2:   
+        test case passed:
+        events: g1->m1->f1->g2->b1->m2->g3->m3->f2->g4->->m4
+        accuracy of events: 91%
+
+bag3:   grab zone --> GRAB_ZONE = (750, 0, 1000, 250)
+        test case passed
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->m3->f2->f2)->(->b2->m4)
+        accuracy of events: 91%
+
+bag4:
+
 '''
-skip_time = 5*60+50
+skip_time = 26*60+0
 skip_frames = int(frame_rate * skip_time)
 cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
 ##############################################
