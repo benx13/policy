@@ -4,6 +4,10 @@ from math import floor, ceil
 from PIL import Image
 
 
+lower_blue = np.array([100, 40, 40])  # Lower end of the blue spectrum
+upper_blue = np.array([140, 255, 255])
+lower_white = np.array([0, 0, 200], dtype=np.uint8)
+upper_white = np.array([255, 30, 255], dtype=np.uint8)
 
 classNames = ["handle"]
 def plot_stats(img, zone, stats):
@@ -90,9 +94,7 @@ def overlay_region(img, region, alpha=0.1, color=(0, 0, 255)):
     cv2.rectangle(img, (region[0], region[1]), (region[2], region[3]), color, 3)
 
 def plot_path(img, objects, zone, history):
-
         for (objectID, centroid) in objects.items():
-        
             text = "ID {}".format(objectID)
             if zone.disappeared[objectID] == 0:
                 cv2.putText(img, text, (centroid[0] - 10, centroid[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 255, 0), 4)
@@ -102,7 +104,7 @@ def plot_path(img, objects, zone, history):
             if len(track) > 60:
                 track.pop(0)
             points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
-            cv2.polylines(img, [points], isClosed=False, color=(0, 0, 255), thickness=5)  
+            cv2.polylines(img, [points], isClosed=False, color=(255, 0, 255), thickness=5)  
 
 def get_coordinates(img, xn, yn, widthn, heightn):
     x = xn * img.shape[1]
@@ -116,14 +118,24 @@ def plot_time_on_frame(img, cap, fps):
     cv2.putText(img, frame_to_hms(cap.get(cv2.CAP_PROP_POS_FRAMES), fps), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 6)
 
 def preprocess_img(img):
-    processed_img = cv2.resize(img, (384, 224))
-    processed_img = cv2.cvtColor(processed_img, cv2.COLOR_BGR2RGB)
+    processed_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return Image.fromarray(processed_img)
 
 def get_blue(img):
     hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower_blue = np.array([100, 40, 40])  # Lower end of the blue spectrum
-    upper_blue = np.array([140, 255, 255])
     blue_mask = cv2.inRange(hsv_image, lower_blue, upper_blue)
-    bluees = cv2.bitwise_and(img, img, mask=blue_mask)
-    return bluees
+    return cv2.bitwise_and(img, img, mask=blue_mask)
+def get_white(img):
+    hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    white_mask = cv2.inRange(hsv_image, lower_white, upper_white)
+    return cv2.bitwise_and(img, img, mask=white_mask)
+
+def binary_image(img, threshold_value=180):
+    # Convert the image to grayscale
+    gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # Apply binary thresholding
+    _, binary_result = cv2.threshold(gray_image, threshold_value, 255, cv2.THRESH_BINARY)
+
+    return binary_result
+    
