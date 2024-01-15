@@ -17,11 +17,12 @@ stats = {'grab': 0,
          'backward':0,
          'machine':0
          }
-logger = []
+events = []
 ##############################################
 
 ###################HYPER_PARAMS###########################
-GRAB_ZONE = (750, 0, 1000, 250)
+GRAB_ZONE = (750, 0, 1030, 275)
+GRAB_ZONE_2 = (975, 215, 1100, 325)
 FORWARD_ZONE = (166, 263, 560, 450)
 BACKWARD_ZONE = (970, 270, 1300, 450)
 MACHINE_ZONE = (525, 270, 850, 450)
@@ -32,31 +33,31 @@ BACKWARD_DIRECTIONS = [' right', ' ']
 
 GRAB_TEMPRATURE = 3
 FORWARD_TEMPRATURE = 7
-BACKWARD_TEMPRATURE = 7
-MACHINE_TEMPRATURE = 7
+BACKWARD_TEMPRATURE = 5
+MACHINE_TEMPRATURE = 10
 
 BLUE = True
 ##############################################
 
 ################INIT_TRACKER############################
-grab_tracker = CentroidTracker(maxDisappeared=300, direction=[])
+grab_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)
 grab_history = defaultdict(lambda: [])
-tracking_history_grab = CircularBuffer(20)
+tracking_history_grab = CircularBuffer(100)
 grab_id_dict = {}
 ##############################################
 forward_tracker = CentroidTracker(maxDisappeared=300, direction=[' left', 'up left', 'down left'])
 forward_history = defaultdict(lambda: [])
-tracking_history_forward = CircularBuffer(40)
+tracking_history_forward = CircularBuffer(100)
 forward_id_dict = {}
 ##############################################
-backward_tracker = CentroidTracker(maxDisappeared=150, direction=BACKWARD_DIRECTIONS)
+backward_tracker = CentroidTracker(maxDisappeared=300, direction=BACKWARD_DIRECTIONS)
 backward_history = defaultdict(lambda: [])
-tracking_history_backward = CircularBuffer(40)
+tracking_history_backward = CircularBuffer(200)
 backward_id_dict = {}
 ##############################################
-machine_tracker = CentroidTracker(maxDisappeared=150, direction=FORWARD_DIRECTIONS)
+machine_tracker = CentroidTracker(maxDisappeared=300, direction=[' left', 'up left', 'down left'])
 machine_history = defaultdict(lambda: [])
-tracking_history_machine = CircularBuffer(40)
+tracking_history_machine = CircularBuffer(100)
 machine_id_dict = {}
 ##############################################
 
@@ -108,13 +109,57 @@ bag2:
 
 bag3:   grab zone --> GRAB_ZONE = (750, 0, 1000, 250)
         test case passed
-        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->m3->f2->f2)->(->b2->m4)
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->FM->f2->Ff)->(->b2->m4)
         accuracy of events: 91%
 
-bag4:
+bag4: potential bug in tracker TODO
+
+bag5:
+        changed grab zone to:
+        GRAB_ZONE = (750, 0, 1030, 275)
+        GRAB_ZONE_2 = (950, 215, 1100, 325)
+        -----------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)->Fm->(g4->b2->m4)
+        accuracy of events: 100%
+
+bag6:
+        changed grab zone 2 to:
+        (975, 215, 1100, 325)
+        ------------
+        test case passed:
+        events: g1->m1->f1->g2->b1->m2->g3->m3->f2->g4->b2->m4
+        accuracy of events: 100%
+
+bag7: changed backwards temp to 5 and history to 200
+        ----------------------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)->Fg->Fm->(g4->b2->m4)
+        accuracy of events: 100%
+
+bag8:   changed grab history to 100
+        ----------------------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)->(g4->b2->m4)
+        accuracy of events: 100%
+bag9:
+        repeated second handle twice 
+        ----------------------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)->m->(g4->b2->m4)
+        accuracy of events: 100%      
+
+bag10:
+        increased min distance of grab to 200
+        increased machine hist to 100
+        ----------------------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)-> (g4->b2->m4)
+        accuracy of events: 100%  
 
 '''
-skip_time = 26*60+0
+
+skip_time = 74*60+20
 skip_frames = int(frame_rate * skip_time)
 cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
 ##############################################
@@ -130,7 +175,7 @@ cv2.setMouseCallback('Window', mouse_callback)
 ########################################################
 
 table_list = []
-lenght = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)-10)
+lenght = int(frame_rate * (79*60+45)) - int(frame_rate * (74*60+20))
 #lenght = 7*60+7
 #lenght = int(frame_rate * lenght)
 print(f'len = {lenght}')
@@ -181,7 +226,7 @@ for _ in tqdm(range(lenght)):
         if confidence > CONFIDENCE_THRESHOLD:
             x, y, x1, y1, x2, y2 = get_coordinates(img, xn, yn, widthn, heightn)
             plot_rectangles1(img, x1,y1,x2,y2,confidence)
-            if(centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE)):
+            if(centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE) or centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE_2)):
                 grab_appeared_flag = 1
                 grab_rects = [int(x), int(y)]
 
@@ -197,6 +242,7 @@ for _ in tqdm(range(lenght)):
                 machine_appeared_flag = 1
                 machine_rects = [int(x), int(y)]
 
+    #---------------
    
     grab_objects, flagXgrab = grab_tracker.update(grab_rects)
     plot_path(img, grab_objects, grab_tracker, grab_history)
@@ -206,13 +252,16 @@ for _ in tqdm(range(lenght)):
         tracking_history_grab.append(flagXgrab)
     else:
         tracking_history_grab.append(0)
-
+    print(tracking_history_grab)
+    print(tracking_history_grab.sum())
     if(flagXgrab):
         if(grab_id_dict[str(grab_tracker.count)] == 0):
             if(tracking_history_grab.sum() > GRAB_TEMPRATURE):
                 grab_id_dict[str(grab_tracker.count)] = 1
                 tracking_history_grab.flush()
-                stats['grab'] += 1          
+                stats['grab'] += 1  
+                events.append(f"g{stats['grab']}")        
+    #---------------
 
     forward_objects, flagXforward = forward_tracker.update(forward_rects)
     plot_path(img, forward_objects, forward_tracker, forward_history)
@@ -229,6 +278,9 @@ for _ in tqdm(range(lenght)):
                 forward_id_dict[str(forward_tracker.count)] = 1
                 tracking_history_forward.flush()
                 stats['forward'] += 1 
+                events.append(f"f{stats['forward']}")        
+
+    #---------------
 
     backward_objects, flagXbackward = backward_tracker.update(backward_rects)
     plot_path(img, backward_objects, backward_tracker, backward_history)
@@ -238,14 +290,15 @@ for _ in tqdm(range(lenght)):
         tracking_history_backward.append(flagXbackward)
     else:
         tracking_history_backward.append(0)
-
     if(flagXbackward):
         if(backward_id_dict[str(backward_tracker.count)] == 0):
             if(tracking_history_backward.sum() > BACKWARD_TEMPRATURE):
                 backward_id_dict[str(backward_tracker.count)] = 1
                 tracking_history_backward.flush()
                 stats['backward'] += 1 
+                events.append(f"b{stats['backward']}")        
 
+    #---------------
     machine_objects, flagXmachine = machine_tracker.update(machine_rects)
     plot_path(img, machine_objects, machine_tracker, machine_history)
     if(str(machine_tracker.count) not in machine_id_dict.keys()):
@@ -261,10 +314,13 @@ for _ in tqdm(range(lenght)):
                 machine_id_dict[str(machine_tracker.count)] = 1
                 tracking_history_machine.flush()
                 stats['machine'] += 1 
+                events.append(f"m{stats['machine']}")        
+
 
 
 
     overlay_region(img, GRAB_ZONE, alpha=0.5)
+    overlay_region(img, GRAB_ZONE_2, alpha=0.5)
     overlay_region(img, FORWARD_ZONE, alpha=0.5)
     overlay_region(img, BACKWARD_ZONE, alpha=0.5)
     overlay_region(img, MACHINE_ZONE, alpha=0.5)
@@ -282,6 +338,7 @@ for _ in tqdm(range(lenght)):
     total = stop - start
     print(f'total time:{total*1000} inference time: {inference*1000}')
     print(stats)
+    print(events)
     print(20*'-')
     # Show the plot
     if cv2.waitKey(1) == ord('q'):

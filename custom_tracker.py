@@ -3,7 +3,7 @@ from collections import OrderedDict
 import numpy as np
  
 class CentroidTracker():
-	def __init__(self, maxDisappeared=50, minDistanece=150, direction=None):
+	def __init__(self, maxDisappeared=50, minDistanece=150, direction=[]):
 		self.objects = {}
 		self.disappeared = {}
 		self.nextObjectID = 1
@@ -67,7 +67,7 @@ class CentroidTracker():
 
 				if D < self.minDistanece:
 					self.set_centroid(self.count, new_centroid)
-					if len(self.direction) != 0:
+					if len(self.direction) != 0 :
 						if direction in self.direction:
 							print('here')
 							self.flag = 1

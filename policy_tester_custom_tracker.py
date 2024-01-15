@@ -21,8 +21,8 @@ logger = []
 
 ###################HYPER_PARAMS###########################
 
-MACHINE_ZONE = (970, 270, 1300, 450)
-
+MACHINE_ZONE = (750, 0, 1030, 275)
+MACHINE_ZONE_2 = (975, 215, 1100, 325)
 FORWARD_DIRECTIONS = [' right', ' ']#, 'up right', 'down right']#, 'up left', 'down left']#, 'up left', 'down left', 'up', 'down', ' ']
 
 MACHINE_TEMPRATURE = 10
@@ -31,9 +31,9 @@ BLUE = True
 ##############################################
 
 ################INIT_TRACKER############################
-machine_tracker = CentroidTracker(maxDisappeared=150, direction=FORWARD_DIRECTIONS)
+machine_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)#, direction=FORWARD_DIRECTIONS)
 machine_history = defaultdict(lambda: [])
-tracking_history_machine = CircularBuffer(40)
+tracking_history_machine = CircularBuffer(100)
 machine_id_dict = {}
 ##############################################
 
@@ -50,7 +50,7 @@ cap = cv2.VideoCapture(VIDEO_FILE)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
 #skip_time = 3*60+50
 #skip_time = 8*60+30
-skip_time = 14*60+30
+skip_time = 76*60+0
 #skip_time = 4*60+36
 '''
 Vid checkpoints
@@ -120,7 +120,8 @@ while True:
             x, y, x1, y1, x2, y2 = get_coordinates(img, xn, yn, widthn, heightn)
             plot_rectangles1(img, x1,y1,x2,y2,confidence)
 
-            if(centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE)):
+            if(centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE) or centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE_2)):
+                print('object detected')
                 machine_appeared_flag = 1
                 machine_rects = [int(x), int(y)]
             
@@ -152,6 +153,7 @@ while True:
 
 
     overlay_region(img, MACHINE_ZONE, alpha=0.5)
+    overlay_region(img, MACHINE_ZONE_2, alpha=0.5)
     overlay_region(img, STATS_ZONE, alpha=1)
     plot_stats(img, STATS_ZONE, stats)
     cv2.imshow('Window', img)
@@ -161,7 +163,7 @@ while True:
     #print(f'total time:{total*1000} inference time: {inference*1000}')
     print(stats)
     print(20*'-')
-    if cv2.waitKey(1) == ord('q'):
+    if cv2.waitKey(100) == ord('q'):
         break
 
 
