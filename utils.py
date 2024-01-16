@@ -9,10 +9,15 @@ upper_blue = np.array([140, 255, 255])
 lower_white = np.array([0, 0, 200], dtype=np.uint8)
 upper_white = np.array([255, 30, 255], dtype=np.uint8)
 
+lower_red = np.array([0, 0, 200], dtype = "uint8")
+upper_red= np.array([50, 10, 255], dtype = "uint8")
+
 classNames = ["handle"]
-def plot_stats(img, zone, stats):
+
+def plot_stats(img, zone, stats, label):
     offset = 0
-    for k, v in stats.items():
+    cv2.putText(img, f'{label}', (zone[0], zone[1]+offset), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 6)
+    for k, v in list(stats.items())[:-1]:
         offset+=60
         cv2.putText(img, f'{k}:{v}', (zone[0], zone[1]+offset), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 6)
 def get_stats(machine_zone_tracker, grab_zone_tracker,r):
@@ -129,6 +134,15 @@ def get_white(img):
     hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     white_mask = cv2.inRange(hsv_image, lower_white, upper_white)
     return cv2.bitwise_and(img, img, mask=white_mask)
+def get_red(img):
+    # Define the constant red color
+    #target_red = np.array([30, 3, 214])
+
+    #hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    #print(hsv_image)
+
+    red_mask = cv2.inRange(img, lower_red, upper_red)
+    return cv2.bitwise_and(img, img, mask=red_mask)
 
 def binary_image(img, threshold_value=180):
     # Convert the image to grayscale
@@ -139,3 +153,27 @@ def binary_image(img, threshold_value=180):
 
     return binary_result
     
+def init_current_stats():
+    return {'grab': 0,
+         'forward': 0,
+         'backward':0,
+         'machine':0,
+         'events': []
+         }
+
+def print_disappearing_message(frame, zone, message, current_frame, total_frames):
+    # Calculate opacity based on the current frame
+    opacity = int(255 * (1 - current_frame / total_frames))
+
+    # Create an overlay image with the message
+    overlay = frame.copy()
+    cv2.putText(overlay, message, (zone[0], zone[1]), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 6)
+
+    # Apply the opacity to the overlay
+    cv2.addWeighted(overlay, opacity / 255.0, frame, 1 - opacity / 255.0, 0, frame)
+def plot_logs(img, zone, logs):
+    offset = 0
+    for log in logs:
+        print_disappearing_message(img, (zone[0], zone[1]+offset), log['message'], log['total_frames'] - log['frames_left'], log['total_frames'])
+        log['frames_left'] -= 1
+        offset = offset - 50

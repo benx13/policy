@@ -11,8 +11,6 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 ###################INIT_STATS###########################
-TOTAL_STATS_ZONE = (1500, 750, 1920, 1080)
-CURRENT_STATS_ZONE = (1500, 450, 1920, 700)
 stats = {
         'total': {'grab': 0,
                 'forward': 0,
@@ -185,14 +183,6 @@ skip_frames = int(frame_rate * skip_time)
 cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
 ##############################################
 
-###################INIT_IMSHOW###########################
-def mouse_callback(event, x, y, flags, param):
-    if event == cv2.EVENT_MOUSEMOVE:
-        # Update the window title with the current coordinates of the mouse
-        cv2.setWindowTitle('Window', f'Coordinates: ({x}, {y})')
-cv2.namedWindow("Window", cv2.WINDOW_NORMAL) 
-cv2.resizeWindow("Window", 1920, 1080)
-cv2.setMouseCallback('Window', mouse_callback)
 ########################################################
 bags = 0
 table_list = []
@@ -206,7 +196,6 @@ for _ in tqdm(range(lenght)):
     #    cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_rate * skip_time+9))
     start = time.time()
     success, img = cap.read()
-    plot_time_on_frame(img, cap, frame_rate)
 
     grab_rects = []
     forward_rects = []
@@ -257,7 +246,6 @@ for _ in tqdm(range(lenght)):
     for confidence, (xn, yn, widthn, heightn) in zip(results['confidence'], results['coordinates']):
         if confidence > CONFIDENCE_THRESHOLD:
             x, y, x1, y1, x2, y2 = get_coordinates(img, xn, yn, widthn, heightn)
-            plot_rectangles1(img, x1,y1,x2,y2,confidence)
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE) or centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE_2)):
                 grab_appeared_flag = 1
                 grab_rects = [int(x), int(y)]
@@ -282,8 +270,6 @@ for _ in tqdm(range(lenght)):
         tracking_history_transition.append(flagXtransition)
     else:
         tracking_history_transition.append(0)
-    print(tracking_history_transition)
-    print(tracking_history_transition.sum())
     if(flagXtransition):
         if(transition_id_dict[str(transition_tracker.count)] == 0):
             if(tracking_history_transition.sum() > TRANSITION_TEMPRATURE):
@@ -302,15 +288,12 @@ for _ in tqdm(range(lenght)):
     #---------------
    
     grab_objects, flagXgrab = grab_tracker.update(grab_rects)
-    plot_path(img, grab_objects, grab_tracker, grab_history)
     if(str(grab_tracker.count) not in grab_id_dict.keys()):
         grab_id_dict[str(grab_tracker.count)] = 0
     if(grab_appeared_flag == 1 and grab_id_dict[str(grab_tracker.count)] == 0):
         tracking_history_grab.append(flagXgrab)
     else:
         tracking_history_grab.append(0)
-    print(tracking_history_grab)
-    print(tracking_history_grab.sum())
     if(flagXgrab):
         if(grab_id_dict[str(grab_tracker.count)] == 0):
             if(tracking_history_grab.sum() > GRAB_TEMPRATURE):
@@ -329,7 +312,6 @@ for _ in tqdm(range(lenght)):
     #---------------
 
     forward_objects, flagXforward = forward_tracker.update(forward_rects)
-    plot_path(img, forward_objects, forward_tracker, forward_history)
     if(str(forward_tracker.count) not in forward_id_dict.keys()):
         forward_id_dict[str(forward_tracker.count)] = 0
     if(forward_appeared_flag == 1 and forward_id_dict[str(forward_tracker.count)] == 0):
@@ -354,7 +336,6 @@ for _ in tqdm(range(lenght)):
     #---------------
 
     backward_objects, flagXbackward = backward_tracker.update(backward_rects)
-    plot_path(img, backward_objects, backward_tracker, backward_history)
     if(str(backward_tracker.count) not in backward_id_dict.keys()):
         backward_id_dict[str(backward_tracker.count)] = 0
     if(backward_appeared_flag == 1 and backward_id_dict[str(backward_tracker.count)] == 0):
@@ -377,7 +358,6 @@ for _ in tqdm(range(lenght)):
                      })
     #---------------
     machine_objects, flagXmachine = machine_tracker.update(machine_rects)
-    plot_path(img, machine_objects, machine_tracker, machine_history)
     if(str(machine_tracker.count) not in machine_id_dict.keys()):
         machine_id_dict[str(machine_tracker.count)] = 0
     if(machine_appeared_flag == 1 and machine_id_dict[str(machine_tracker.count)] == 0):
@@ -402,33 +382,20 @@ for _ in tqdm(range(lenght)):
 
 
 
-    overlay_region(img, GRAB_ZONE, alpha=0.5)
-    overlay_region(img, GRAB_ZONE_2, alpha=0.5)
-    overlay_region(img, FORWARD_ZONE, alpha=0.5)
-    overlay_region(img, BACKWARD_ZONE, alpha=0.5)
-    overlay_region(img, MACHINE_ZONE, alpha=0.5)
-    #overlay_region(img, TABLE_ZONE, alpha=0.5)
-    overlay_region(img, TOTAL_STATS_ZONE, alpha=1)
-    overlay_region(img, CURRENT_STATS_ZONE, alpha=1)
-    plot_stats(img, TOTAL_STATS_ZONE, stats['total'], 'total_stats')
-    plot_stats(img, CURRENT_STATS_ZONE, current_stats, 'current_stats')
 
-    logs = list(filter(lambda log: log['frames_left'] > 0, logs))
-    plot_logs(img, (0, 1060), logs)
     #cv2.imshow('white', white)
     #cv2.imshow('binary', binarized)
     
     #cv2.imshow('binary2', binarized2)
-    cv2.imshow('Window', img)
 
     stop = time.time()
     inference = mstop - mstart
     total = stop - start
 
-    print(f'total time:{total*1000} inference time: {inference*1000}')
-    print(stats)
+    #print(f'total time:{total*1000} inference time: {inference*1000}')
+    #print(stats)
     #print(stats['total']['events'])
-    print(20*'-')
+    #print(20*'-')
     # Show the plot
     if cv2.waitKey(1) == ord('q'):
         break
@@ -437,6 +404,7 @@ for _ in tqdm(range(lenght)):
 #plt.plot(table_list)
 
 #plt.show()
+print(stats)
 
 cap.release()
 cv2.destroyAllWindows()

@@ -18,6 +18,9 @@ class CircularBuffer:
     def sum(self):
         return sum(list(self.buffer))
     
+    def flush(self):
+        self.__init__(self.size)
+
     def get_all(self):
         """Returns all items in the circular buffer."""
         return list(self.buffer)

@@ -37,7 +37,7 @@ class CentroidTracker():
 			direction_y = "down"
 		elif y2 < y1:
 			direction_y = "up"
-		##print(f'{direction_y} {direction_x}')
+		###print(f'{direction_y} {direction_x}')
 		return f'{direction_y} {direction_x}'
 
 	def set_centroid(self, ID, centroid):
@@ -47,9 +47,9 @@ class CentroidTracker():
 
 	def update(self, new_centroid):
 		self.flag = 0
-		print(self.disappeared)
-		print(self.objects)
-		print(self.count)
+		#print(self.disappeared)
+		#print(self.objects)
+		#print(self.count)
 		if new_centroid == [] and self.disappeared:
 			self.disappeared[self.count] += 1
 			if self.disappeared[self.count] > self.maxDisappeared:
@@ -60,16 +60,16 @@ class CentroidTracker():
 				self.register(new_centroid)
 			else:
 				current_centroid = self.get_centroid()
-				print(f'centroid: {current_centroid} --> {new_centroid}')
+				#print(f'centroid: {current_centroid} --> {new_centroid}')
 				D = dist.euclidean(current_centroid, new_centroid)
 				direction = self.get_direction(current_centroid, new_centroid)
-				print(f'direction ---> {direction}')
+				#print(f'direction ---> {direction}')
 
 				if D < self.minDistanece:
 					self.set_centroid(self.count, new_centroid)
 					if len(self.direction) != 0 :
 						if direction in self.direction:
-							print('here')
+							#print('here')
 							self.flag = 1
 							self.disappeared[self.count] = 0
 					else:
@@ -81,7 +81,7 @@ class CentroidTracker():
 				#if condition:
 				#	self.flag = 1
 				#	self.disappeared[self.count] = 0
-		print(f'flag--->{self.flag}')
+		#print(f'flag--->{self.flag}')
 		return self.objects, self.flag
 
 		
