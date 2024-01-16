@@ -45,17 +45,17 @@ grab_history = defaultdict(lambda: [])
 tracking_history_grab = CircularBuffer(100)
 grab_id_dict = {}
 ##############################################
-forward_tracker = CentroidTracker(maxDisappeared=300, direction=[' left', 'up left', 'down left'])
+forward_tracker = CentroidTracker(maxDisappeared=300, minDistanece=200, direction=[' left', 'up left', 'down left'])
 forward_history = defaultdict(lambda: [])
 tracking_history_forward = CircularBuffer(100)
 forward_id_dict = {}
 ##############################################
-backward_tracker = CentroidTracker(maxDisappeared=300, direction=BACKWARD_DIRECTIONS)
+backward_tracker = CentroidTracker(maxDisappeared=300, minDistanece=200, direction=BACKWARD_DIRECTIONS)
 backward_history = defaultdict(lambda: [])
 tracking_history_backward = CircularBuffer(200)
 backward_id_dict = {}
 ##############################################
-machine_tracker = CentroidTracker(maxDisappeared=300, direction=[' left', 'up left', 'down left'])
+machine_tracker = CentroidTracker(maxDisappeared=300, minDistanece=200, direction=[' left', 'up left', 'down left', ' '])
 machine_history = defaultdict(lambda: [])
 tracking_history_machine = CircularBuffer(100)
 machine_id_dict = {}
@@ -159,7 +159,7 @@ bag10:
 
 '''
 
-skip_time = 74*60+20
+skip_time = 7*60+40
 skip_frames = int(frame_rate * skip_time)
 cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
 ##############################################
@@ -175,7 +175,7 @@ cv2.setMouseCallback('Window', mouse_callback)
 ########################################################
 
 table_list = []
-lenght = int(frame_rate * (79*60+45)) - int(frame_rate * (74*60+20))
+lenght = int(cap.get(cv2.CAP_PROP_POS_FRAMES))-10
 #lenght = 7*60+7
 #lenght = int(frame_rate * lenght)
 print(f'len = {lenght}')
