@@ -1,0 +1,82 @@
+'''
+Vid checkpoints
+Bag1 : 0
+Bag2: 8:33
+Bag3: 16:15
+Bag4:26 
+Bag5:34
+Bag6:40
+Bag7:52:30
+Bag8:59:15
+Bag9::1:05:55
+Bag10: 1:14:20
+Bag11:1:20:00
+
+------
+tests:
+bag1:   changed machine temp from 3 to 5
+        anomaly at 4:36 caused by model false postive
+        can be fixed by blue filter
+        anomaly at 5:53 4th handle going backward fix by
+        tuning zone and adding directions
+        ------------
+        test case passed:
+        events: g1->m1->f1->g2->b1->m2->g3->m3->f2->g4->b2->m4
+        accuracy of events: 100%
+
+bag2:   
+        test case passed:
+        events: g1->m1->f1->g2->b1->m2->g3->m3->f2->g4->->m4
+        accuracy of events: 91%
+
+bag3:   grab zone --> GRAB_ZONE = (750, 0, 1000, 250)
+        test case passed
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->FM->f2->Ff)->(->b2->m4)
+        accuracy of events: 91%
+
+bag4: potential bug in tracker TODO
+
+bag5:
+        changed grab zone to:
+        GRAB_ZONE = (750, 0, 1030, 275)
+        GRAB_ZONE_2 = (950, 215, 1100, 325)
+        -----------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)->Fm->(g4->b2->m4)
+        accuracy of events: 100%
+
+bag6:
+        changed grab zone 2 to:
+        (975, 215, 1100, 325)
+        ------------
+        test case passed:
+        events: g1->m1->f1->g2->b1->m2->g3->m3->f2->g4->b2->m4
+        accuracy of events: 100%
+
+bag7: changed backwards temp to 5 and history to 200
+        ----------------------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)->Fg->Fm->(g4->b2->m4)
+        accuracy of events: 100%
+
+bag8:   changed grab history to 100
+        ----------------------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)->(g4->b2->m4)
+        accuracy of events: 100%
+bag9:
+        repeated second handle twice 
+        ----------------------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)->m->(g4->b2->m4)
+        accuracy of events: 100%      
+
+bag10:
+        increased min distance of grab to 200
+        increased machine hist to 100
+        ----------------------
+        test case passed:
+        events: (g1->m1->f1)->(g2->b1->m2)->(g3->m3->f2)-> (g4->b2->m4)
+        accuracy of events: 100%  
+
+'''
