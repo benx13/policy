@@ -11,6 +11,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from counter import Counter
 from logger import Logger
+
 ###################INIT_STATS###########################
 TOTAL_STATS_ZONE = (1500, 750, 1920, 1080)
 CURRENT_STATS_ZONE = (1500, 450, 1920, 700)
@@ -39,23 +40,18 @@ BLUE = True
 
 ################INIT_TRACKER############################
 grab_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)
-grab_history = defaultdict(lambda: [])
 grab_counter = Counter(grab_tracker, GRAB_TEMPRATURE, 100)
 ############################################
 transition_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)
-transition_history = defaultdict(lambda: [])
 transition_counter = Counter(transition_tracker, TRANSITION_TEMPRATURE, 100)
 ##############################################
 forward_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=[' left', 'up left', 'down left'])
-forward_history = defaultdict(lambda: [])
 forward_counter = Counter(forward_tracker, FORWARD_TEMPRATURE, 100)
 ##############################################
 backward_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200, direction=BACKWARD_DIRECTIONS)
-backward_history = defaultdict(lambda: [])
 backward_counter = Counter(backward_tracker, BACKWARD_TEMPRATURE, 100)
 ##############################################
 machine_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=[' left', 'up left', 'down left', ' '])
-machine_history = defaultdict(lambda: [])
 machine_counter = Counter(machine_tracker, MACHINE_TEMPRATURE, 100)
 ##############################################
 
@@ -81,7 +77,7 @@ print(f'len = {lenght}')
 for _ in tqdm(range(lenght)):
     start = time.time()
     success, img = cap.read()
-    
+
     transition_counter.reset()
     grab_counter.reset()
     forward_counter.reset()
@@ -126,24 +122,21 @@ for _ in tqdm(range(lenght)):
         logger.update('transition', current_time)
     #---------------
     flagXgrab = grab_counter.apply()
-    plot_path(img, grab_tracker.objects, grab_tracker, grab_history)
     if(flagXgrab):
         logger.update('grab', current_time)
     #---------------
     flagXforward = forward_counter.apply()
-    plot_path(img, forward_tracker.objects, forward_tracker, forward_history)
     if(flagXforward):
         logger.update('forward', current_time)
     #---------------
     flagXbackward = backward_counter.apply()
-    plot_path(img, backward_tracker.objects, backward_tracker, backward_history)
     if(flagXbackward):
         logger.update('backward', current_time)
     #---------------
     flagXmachine = machine_counter.apply()
-    plot_path(img, machine_tracker.objects, machine_tracker, machine_history)
     if(flagXmachine):
         logger.update('machine', current_time)
 
 cap.release()
 cv2.destroyAllWindows()
+logger.save_results()

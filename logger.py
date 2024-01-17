@@ -1,5 +1,5 @@
 from utils import frame_to_hms
-
+import json
 
 class Logger():
     def __init__(self):
@@ -46,3 +46,7 @@ class Logger():
 
     def update_logs(self):
         self.logs = list(filter(lambda log: log['frames_left'] > 0, self.logs))
+        
+    def save_results(self):
+        with open('output.json', 'w') as fp:
+            json.dump(self.stats, fp)

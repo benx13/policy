@@ -177,3 +177,8 @@ def plot_logs(img, zone, logs):
         print_disappearing_message(img, (zone[0], zone[1]+offset), log['message'], log['total_frames'] - log['frames_left'], log['total_frames'])
         log['frames_left'] -= 1
         offset = offset - 50
+
+def mouse_callback(event, x, y, flags, param):
+    if event == cv2.EVENT_MOUSEMOVE:
+        # Update the window title with the current coordinates of the mouse
+        cv2.setWindowTitle('Window', f'Coordinates: ({x}, {y})')

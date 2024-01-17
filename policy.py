@@ -189,5 +189,7 @@ for _ in tqdm(range(lenght)):
     if cv2.waitKey(1) == ord('q'):
         break
     
+
 cap.release()
 cv2.destroyAllWindows()
+logger.save_results()
