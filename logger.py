@@ -30,8 +30,10 @@ class Logger():
             }
 
     def update(self, event, logging_time):
+        if event != 'transition':
+            self.buffer[event] += 1
         self.stats['total'][event] += 1  
-        self.stats['total'][event].append(f"{event[0]}{self.stats['total'][event]}") 
+        self.stats['total']['events'].append(f"{event[0]}{self.stats['total'][event]}") 
         self.buffer['events'].append(f"{event[0]}{self.stats['total'][event]}") 
         self.logs.append(
             {'message':f'{event} happened at: {logging_time}',
