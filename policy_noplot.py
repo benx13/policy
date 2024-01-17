@@ -81,6 +81,7 @@ print(f'len = {lenght}')
 for _ in tqdm(range(lenght)):
     start = time.time()
     success, img = cap.read()
+    
     transition_counter.reset()
     grab_counter.reset()
     forward_counter.reset()
