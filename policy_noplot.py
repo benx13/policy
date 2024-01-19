@@ -11,6 +11,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from counter import Counter
 from logger import Logger
+from imutils.video import FileVideoStream as Fvs
+
 
 ###################INIT_STATS###########################
 TOTAL_STATS_ZONE = (1500, 750, 1920, 1080)
@@ -19,11 +21,11 @@ logger = Logger()
 ##############################################
 
 ###################HYPER_PARAMS###########################
-GRAB_ZONE = (750, 0, 1030, 275)
-GRAB_ZONE_2 = (975, 215, 1100, 325)
-FORWARD_ZONE = (166, 263, 560, 450)
-BACKWARD_ZONE = (970, 270, 1300, 450)
-MACHINE_ZONE = (525, 270, 850, 450)
+GRAB_ZONE = (1260, 0, 1550, 275)
+GRAB_ZONE_2 = (1399, 215, 1400, 216)
+FORWARD_ZONE = (850, 263, 1050, 450)
+MACHINE_ZONE = (1000, 270, 1300, 500)
+BACKWARD_ZONE = (1350, 270, 1650, 500)
 TABLE_ZONE = (525, 370, 970, 1075)
 RED_ZONE = (1870, 95, 1885, 110)
 
@@ -63,22 +65,26 @@ model = coremltools.models.MLModel(MODEL_PATH)
 ##############################################
 
 ################INIT_CAP############################
-VIDEO_FILE = 'videos/benchmark.mov'
-cap = cv2.VideoCapture(VIDEO_FILE)
-frame_rate = cap.get(cv2.CAP_PROP_FPS)
-skip_time = 0*60+0
-skip_frames = int(frame_rate * skip_time)
-cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
+VIDEO_FILE = 'videos/benchmark2.mov'
+fvs = Fvs(path=VIDEO_FILE).start()
+
+#cap = cv2.VideoCapture(VIDEO_FILE)
+#frame_rate = cap.get(cv2.CAP_PROP_FPS)
+#skip_time = 0*60+0
+#skip_frames = int(frame_rate * skip_time)
+#cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
 
 ########################################################
 bags = 0
-lenght = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-10
+#lenght = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-10
 #lenght = int(frame_rate * 22*60) - skip_frames
+lenght = 108680
 print(f'len = {lenght}')
 for _ in tqdm(range(lenght)):
     start = time.time()
-    success, img = cap.read()
-    plot_time_on_frame(img, cap, frame_rate)
+    #success, img = cap.read()
+    img = fvs.read()
+    #plot_time_on_frame(img, cap, frame_rate)
 
     transition_counter.reset()
     grab_counter.reset()
@@ -118,7 +124,7 @@ for _ in tqdm(range(lenght)):
 
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE)):
                 machine_counter.update([int(x), int(y)])
-    current_time = frame_to_hms(cap.get(cv2.CAP_PROP_POS_FRAMES), frame_rate)
+    current_time = 12#frame_to_hms(cap.get(cv2.CAP_PROP_POS_FRAMES), frame_rate)
     #---------------
     flagXtransition = transition_counter.apply()
     if(flagXtransition):
@@ -139,8 +145,10 @@ for _ in tqdm(range(lenght)):
     flagXmachine = machine_counter.apply()
     if(flagXmachine):
         logger.update('machine', current_time)
+    #print(logger.stats)
 
 logger.update('transition', current_time)
-cap.release()
+#cap.release()
+fvs.stop()
 cv2.destroyAllWindows()
 logger.save_results()
