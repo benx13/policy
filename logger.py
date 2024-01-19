@@ -49,7 +49,7 @@ class Logger():
         if event == 'transition':
             self.buffer['id'] = self.transition_id
             clean_sequence, sequence_remains, decision, _ = Interpreter(self.buffer['events']).postprocess_sequence()
-            self.stats['BAG_COUNT'] += 1 if decision['finished_probability'] > 0.6 else 0
+            self.stats['BAG_COUNT'] += 1 if decision['finished_probability'] > 0.5 else 0
             self.stats['bag_count_based_on_order_of_events'] += decision['finished_probability']
             self.stats['bag_count_based_on_total_number_of_events'] = (self.stats['total']['grab']/4 + self.stats['total']['machine']/4 + self.stats['total']['forward']/2 + self.stats['total']['backward']/2)/4
             self.stats['normalized_bag_count'] = (self.stats['bag_count_based_on_order_of_events'] + self.stats['bag_count_based_on_order_of_events'] + self.stats['BAG_COUNT'])/3
