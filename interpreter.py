@@ -10,7 +10,8 @@ class Interpreter():
         self.handle_dict = {'gbm':0,
                             'gmf':0,
                             'missing':0,
-                            'extra':0
+                            'extra':0,
+                            'finished_probability': 0
                             }
     
     def postprocess_sequence(self):
@@ -25,10 +26,12 @@ class Interpreter():
         #print(f'clean before: {self.clean_sequence}')
         #print('-----------------')
         self.process_remains()
-        self.handle_dict['extra'] = len(self.sequence_remains)
+        self.handle_dict['extra'] += len(self.sequence_remains)
         #print(f'remains after: {self.sequence_remains}')
         #print(f'remains after: {self.clean_sequence}')
         #print(self.handle_dict)
+        self.handle_dict['finished_probability'] = (self.handle_dict['gmf'] + self.handle_dict['gbm'])/4\
+                                                  - (self.handle_dict['extra'] + self.handle_dict['extra']) * 0.05
 
         return self.clean_sequence, self.sequence_remains, self.handle_dict, self.original_sequence
     
