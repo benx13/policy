@@ -7,7 +7,7 @@ class Counter():
 	def __init__(self, tracker, temprature, buffer_size=100):
 		self.tracker = tracker
 		self.tracking_history = CircularBuffer(buffer_size)
-		self.grab_id_dict = {}
+		self.id_dict = {}
 		self.rects = []
 		self.appeared_flag = 0
 		self.flagX = 0
