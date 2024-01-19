@@ -63,20 +63,22 @@ model = coremltools.models.MLModel(MODEL_PATH)
 ##############################################
 
 ################INIT_CAP############################
-VIDEO_FILE = 'videos/test2.mov'
+VIDEO_FILE = 'videos/benchmark.mov'
 cap = cv2.VideoCapture(VIDEO_FILE)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
-skip_time = 34*60+0
+skip_time = 0*60+0
 skip_frames = int(frame_rate * skip_time)
 cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
 
 ########################################################
 bags = 0
 lenght = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-10
+#lenght = int(frame_rate * 22*60) - skip_frames
 print(f'len = {lenght}')
 for _ in tqdm(range(lenght)):
     start = time.time()
     success, img = cap.read()
+    plot_time_on_frame(img, cap, frame_rate)
 
     transition_counter.reset()
     grab_counter.reset()
@@ -94,12 +96,13 @@ for _ in tqdm(range(lenght)):
         input = preprocess_img(blues)
     else:
         input = preprocess_img(resized_img)
+
     results = model.predict({'image': input, 
                              'iouThreshold': IOU_THRESHOLD, 
                              'confidenceThreshold': CONFIDENCE_THRESHOLD})
 
     if(np.sum(reds2[:,:,2])>0):
-            grab_counter.update([1880, 100])
+            transition_counter.update([1880, 100])
     
     for confidence, (xn, yn, widthn, heightn) in zip(results['confidence'], results['coordinates']):
         if confidence > CONFIDENCE_THRESHOLD:
@@ -137,6 +140,7 @@ for _ in tqdm(range(lenght)):
     if(flagXmachine):
         logger.update('machine', current_time)
 
+logger.update('transition', current_time)
 cap.release()
 cv2.destroyAllWindows()
 logger.save_results()

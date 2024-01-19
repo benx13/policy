@@ -11,6 +11,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from counter import Counter
 from logger import Logger
+
 ###################INIT_STATS###########################
 TOTAL_STATS_ZONE = (1500, 750, 1920, 1080)
 CURRENT_STATS_ZONE = (1500, 450, 1920, 700)
@@ -67,10 +68,10 @@ model = coremltools.models.MLModel(MODEL_PATH)
 ##############################################
 
 ################INIT_CAP############################
-VIDEO_FILE = 'videos/test2.mov'
+VIDEO_FILE = 'videos/benchmark.mov'
 cap = cv2.VideoCapture(VIDEO_FILE)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
-skip_time = 34*60+0
+skip_time = 0*60+0
 skip_frames = int(frame_rate * skip_time)
 cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
 ##############################################
@@ -85,12 +86,13 @@ cv2.resizeWindow("Window", 1920, 1080)
 cv2.setMouseCallback('Window', mouse_callback)
 ########################################################
 bags = 0
-lenght = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))-10
+#lenght = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)/4)-10
+lenght = int(frame_rate * 22*60) - skip_frames
 print(f'len = {lenght}')
 for _ in tqdm(range(lenght)):
     start = time.time()
     success, img = cap.read()
-    plot_time_on_frame(img, cap, frame_rate)
+    #plot_time_on_frame(img, cap, frame_rate)
 
     transition_counter.reset()
     grab_counter.reset()
@@ -115,7 +117,7 @@ for _ in tqdm(range(lenght)):
     mstop = time.time()
 
     if(np.sum(reds2[:,:,2])>0):
-            grab_counter.update([1880, 100])
+            transition_counter.update([1880, 100])
     
     for confidence, (xn, yn, widthn, heightn) in zip(results['confidence'], results['coordinates']):
         if confidence > CONFIDENCE_THRESHOLD:
@@ -123,13 +125,10 @@ for _ in tqdm(range(lenght)):
             plot_rectangles1(img, x1,y1,x2,y2,confidence)
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE) or centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE_2)):
                 grab_counter.update([int(x), int(y)])
-
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),FORWARD_ZONE)):
                 forward_counter.update([int(x), int(y)])
-
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),BACKWARD_ZONE)):
                 backward_counter.update([int(x), int(y)])
-
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE)):
                 machine_counter.update([int(x), int(y)])
     current_time = frame_to_hms(cap.get(cv2.CAP_PROP_POS_FRAMES), frame_rate)
@@ -170,8 +169,8 @@ for _ in tqdm(range(lenght)):
     overlay_region(img, TOTAL_STATS_ZONE, alpha=1)
     overlay_region(img, CURRENT_STATS_ZONE, alpha=1)
     #------------------------
-    plot_stats(img, TOTAL_STATS_ZONE, logger.stats['total'], 'total_stats')
     plot_stats(img, CURRENT_STATS_ZONE, logger.buffer, 'current_stats')
+    plot_stats(img, TOTAL_STATS_ZONE, logger.stats['total'], 'total_stats')
     #---------------------
     logger.update_logs()
     plot_logs(img, (0, 1060), logger.logs)
@@ -189,7 +188,7 @@ for _ in tqdm(range(lenght)):
     if cv2.waitKey(1) == ord('q'):
         break
     
-
+logger.update('transition', current_time)
 cap.release()
 cv2.destroyAllWindows()
 logger.save_results()

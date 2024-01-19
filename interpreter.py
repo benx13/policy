@@ -15,23 +15,27 @@ class Interpreter():
                             }
     
     def postprocess_sequence(self):
-        self.pop_dupes()
-        self.sequence = [i for i in self.unduped]
-        self.sequence_remains = [i for i in self.sequence]
-        self.build_sequence()
+        if (len(self.sequence)>3):
+            self.pop_dupes()
+            self.sequence = [i for i in self.unduped]
+            self.sequence_remains = [i for i in self.sequence]
+            self.build_sequence()
 
-        self.sequence_remains = [i[0] for i in self.sequence_remains]
-        #print(self.handle_dict)
-        #print(f'remains before: {self.sequence_remains}')
-        #print(f'clean before: {self.clean_sequence}')
-        #print('-----------------')
-        self.process_remains()
-        self.handle_dict['extra'] += len(self.sequence_remains)
-        #print(f'remains after: {self.sequence_remains}')
-        #print(f'remains after: {self.clean_sequence}')
-        #print(self.handle_dict)
-        self.handle_dict['finished_probability'] = (self.handle_dict['gmf'] + self.handle_dict['gbm'])/4\
-                                                  - (self.handle_dict['extra'] + self.handle_dict['extra']) * 0.05
+            self.sequence_remains = [i[0] for i in self.sequence_remains]
+            #print(self.handle_dict)
+            #print(f'remains before: {self.sequence_remains}')
+            #print(f'clean before: {self.clean_sequence}')
+            #print('-----------------')
+            self.process_remains()
+            self.handle_dict['extra'] += len(self.sequence_remains)
+            #print(f'remains after: {self.sequence_remains}')
+            #print(f'remains after: {self.clean_sequence}')
+            #print(self.handle_dict)
+            self.handle_dict['finished_probability'] = (self.handle_dict['gmf'] + self.handle_dict['gbm'])/4 - (self.handle_dict['extra'] + self.handle_dict['missing']) * 0.05
+
+        else:
+            self.sequence_remains = self.sequence
+            self.handle_dict['extra'] = len(self.sequence_remains)
 
         return self.clean_sequence, self.sequence_remains, self.handle_dict, self.original_sequence
     
@@ -129,7 +133,7 @@ class Interpreter():
                     self.handle_dict[''.join(events)] += 1
                     self.handle_dict['missing'] += 1
 
-
+'''
 
 events = [event.split(' -> ') for event in 
 ['g1 -> m1 -> f1 -> g2 -> b2 -> m2 -> g3 -> m3 -> f3 -> g4 -> b4 -> m4', 
@@ -153,3 +157,4 @@ for i in events[:]:
     print(f'remains:    --->  {remains}')
     print(f'ditc:       --->  {count}')
 
+'''
