@@ -182,3 +182,47 @@ def mouse_callback(event, x, y, flags, param):
     if event == cv2.EVENT_MOUSEMOVE:
         # Update the window title with the current coordinates of the mouse
         cv2.setWindowTitle('Window', f'Coordinates: ({x}, {y})')
+
+
+def hms_difference(time1, time2):
+    # Split the input times into hours, minutes, and seconds
+    hours1, minutes1, seconds1 = map(int, time1.split(':'))
+    hours2, minutes2, seconds2 = map(int, time2.split(':'))
+    
+    # Calculate the total seconds for each time
+    total_seconds1 = hours1 * 3600 + minutes1 * 60 + seconds1
+    total_seconds2 = hours2 * 3600 + minutes2 * 60 + seconds2
+    
+    # Calculate the difference in seconds
+    difference_seconds = abs(total_seconds1 - total_seconds2)
+    
+    # Calculate hours, minutes, and seconds for the difference
+    hours_diff = int(difference_seconds // 3600)
+    minutes_diff = int((difference_seconds % 3600) // 60)
+    seconds_diff = int(difference_seconds % 60)
+    
+    # Format the difference as hh:mm:ss
+    return f"{hours_diff:02d}:{minutes_diff:02d}:{seconds_diff:02d}"
+
+
+def hms_mean(time_list):
+    # Check if the input list is empty
+    if not time_list:
+        return "00:00:00"  # Return a default value for an empty list
+    
+    # Split the input times into hours, minutes, and seconds
+    total_seconds = 0
+    for time in time_list:
+        hours, minutes, seconds = map(int, time.split(':'))
+        total_seconds += hours * 3600 + minutes * 60 + seconds
+    
+    # Calculate the mean total seconds
+    mean_seconds = total_seconds / len(time_list)
+    
+    # Calculate hours, minutes, and seconds for the mean
+    hours_mean = int(mean_seconds // 3600)
+    minutes_mean = int((mean_seconds % 3600) // 60)
+    seconds_mean = int(mean_seconds % 60)
+    
+    # Format the mean as hh:mm:ss
+    return f"{hours_mean:02d}:{minutes_mean:02d}:{seconds_mean:02d}"
