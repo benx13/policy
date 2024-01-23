@@ -1,47 +1,35 @@
 import cv2
 import coremltools
-from PIL import Image
 import numpy as np
 import time
 from utils import *  
 from custom_tracker import CentroidTracker
-from collections import defaultdict
-from circular_buffer import CircularBuffer
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 from counter import Counter
 from logger import Logger
 from imutils.video import FileVideoStream as Fvs
 import yaml
-config = yaml.safe_load('benchmark1.yaml')
+with open("configs/benchmark1.yaml") as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
 
-###################INIT_STATS###########################
+
 logger = Logger()
 
+
 ################INIT_TRACKER############################
-grab_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200)
+grab_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)
 grab_counter = Counter(grab_tracker, config['GRAB_TEMPRATURE'], 100)
-
-transition_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200)
+transition_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)
 transition_counter = Counter(transition_tracker, config['TRANSITION_TEMPRATURE'], 100)
-
-
-forward_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200, direction=config['FORWARD_DIRECTION'])
+forward_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=config['FORWARD_DIRECTIONS'])
 forward_counter = Counter(forward_tracker, config['FORWARD_TEMPRATURE'], 100)
-
-
 backward_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200, direction=config['BACKWARD_DIRECTIONS'])
-backward_counter = Counter(backward_tracker, config['BACKWARD_TEMPRATURE, 100'])
-
-machine_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200, direction=config['MACHINE_DIRECTION'])
+backward_counter = Counter(backward_tracker, config['BACKWARD_TEMPRATURE'], 100)
+machine_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=config['MACHINE_DIRECTIONS'])
 machine_counter = Counter(machine_tracker, config['MACHINE_TEMPRATURE'], 100)
 
 
-
-################INIT_MODEL############################
-
 model = coremltools.models.MLModel(config['MODEL_PATH'])
-##############################################
 
 ################INIT_CAP############################
 fvs = Fvs(path=config['VIDEO_FILE'])

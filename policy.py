@@ -12,76 +12,48 @@ import matplotlib.pyplot as plt
 from counter import Counter
 from logger import Logger
 from imutils.video import FileVideoStream as Fvs
+import yaml
 
-###################INIT_STATS###########################
-TOTAL_STATS_ZONE = (1500, 750, 1920, 1080)
-CURRENT_STATS_ZONE = (1500, 450, 1920, 700)
+with open("configs/benchmark1.yaml") as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
+
+
 logger = Logger()
-##############################################
 
-###################HYPER_PARAMS###########################
-GRAB_ZONE = (1260, 0, 1550, 275)
-GRAB_ZONE_2 = (1399, 215, 1400, 216)
-FORWARD_ZONE = (850, 263, 1050, 450)
-MACHINE_ZONE = (1000, 270, 1300, 500)
-BACKWARD_ZONE = (1350, 270, 1650, 500)
-TABLE_ZONE = (525, 370, 970, 1075)
-RED_ZONE = (1870, 95, 1885, 110)
-
-FORWARD_DIRECTIONS = [' left', 'up left', 'down left', 'up', 'down', ' ']
-BACKWARD_DIRECTIONS = [' right', ' ']
-
-GRAB_TEMPRATURE = 3
-FORWARD_TEMPRATURE = 7
-BACKWARD_TEMPRATURE = 5
-MACHINE_TEMPRATURE = 10
-TRANSITION_TEMPRATURE = 40
-
-BLUE = True
 
 ################INIT_TRACKER############################
 grab_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)
-grab_history = defaultdict(lambda: [])
-grab_counter = Counter(grab_tracker, GRAB_TEMPRATURE, 100)
-############################################
+grab_counter = Counter(grab_tracker, config['GRAB_TEMPRATURE'], 100)
 transition_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)
-transition_history = defaultdict(lambda: [])
-transition_counter = Counter(transition_tracker, TRANSITION_TEMPRATURE, 100)
-##############################################
-forward_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=[' left', 'up left', 'down left'])
-forward_history = defaultdict(lambda: [])
-forward_counter = Counter(forward_tracker, FORWARD_TEMPRATURE, 100)
-##############################################
-backward_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200, direction=BACKWARD_DIRECTIONS)
-backward_history = defaultdict(lambda: [])
-backward_counter = Counter(backward_tracker, BACKWARD_TEMPRATURE, 100)
-##############################################
-machine_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=[' left', 'up left', 'down left', ' '])
-machine_history = defaultdict(lambda: [])
-machine_counter = Counter(machine_tracker, MACHINE_TEMPRATURE, 100)
-##############################################
+transition_counter = Counter(transition_tracker, config['TRANSITION_TEMPRATURE'], 100)
+forward_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=config['FORWARD_DIRECTIONS'])
+forward_counter = Counter(forward_tracker, config['FORWARD_TEMPRATURE'], 100)
+backward_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200, direction=config['BACKWARD_DIRECTIONS'])
+backward_counter = Counter(backward_tracker, config['BACKWARD_TEMPRATURE'], 100)
+machine_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=config['MACHINE_DIRECTIONS'])
+machine_counter = Counter(machine_tracker, config['MACHINE_TEMPRATURE'], 100)
 
-################INIT_MODEL############################
-MODEL_PATH = 'models/bluenano.mlpackage'
-CONFIDENCE_THRESHOLD = 0.3
-IOU_THRESHOLD = 0.8
-model = coremltools.models.MLModel(MODEL_PATH)
-##############################################
+
+grab_history = defaultdict(lambda: [])
+transition_history = defaultdict(lambda: [])
+forward_history = defaultdict(lambda: [])
+backward_history = defaultdict(lambda: [])
+machine_history = defaultdict(lambda: [])
+
+
+model = coremltools.models.MLModel(config['MODEL_PATH'])
 
 ################INIT_CAP############################
-VIDEO_FILE = 'videos/benchmark3.mov'
-#cap = cv2.VideoCapture(VIDEO_FILE)
-fvs = Fvs(path=VIDEO_FILE)
+fvs = Fvs(path=config['VIDEO_FILE'])
 
 frame_rate = fvs.stream.get(cv2.CAP_PROP_FPS)
-skip_time = 4*60+0
+skip_time = 0*60+0
 if skip_time != 0:
-    cap = cv2.VideoCapture(VIDEO_FILE)
+    cap = cv2.VideoCapture(config['VIDEO_FILE'])
     skip_frames = int(frame_rate * skip_time)
     cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
     fvs.stream = cap
 fvs.start()
-##############################################
 
 ###################INIT_IMSHOW###########################
 def mouse_callback(event, x, y, flags, param):
@@ -109,34 +81,34 @@ for _ in tqdm(range(lenght)):
 
     resized_img = cv2.resize(img, (384, 224))
 
-    reds = img[RED_ZONE[1]:RED_ZONE[3], RED_ZONE[0]:RED_ZONE[2]]
+    reds = img[config['RED_ZONE'][1]:config['RED_ZONE'][3], config['RED_ZONE'][0]:config['RED_ZONE'][2]]
     reds2 = get_red(reds)
 
-    if BLUE:
+    if config['BLUE']:
         blues = get_blue(resized_img)
         input = preprocess_img(blues)
     else:
         input = preprocess_img(resized_img)
     mstart = time.time()
     results = model.predict({'image': input, 
-                             'iouThreshold': IOU_THRESHOLD, 
-                             'confidenceThreshold': CONFIDENCE_THRESHOLD})
+                             'iouThreshold': config['IOU_THRESHOLD'], 
+                             'confidenceThreshold': config['CONFIDENCE_THRESHOLD']})
     mstop = time.time()
 
     if(np.sum(reds2[:,:,2])>0):
             transition_counter.update([1880, 100])
     
     for confidence, (xn, yn, widthn, heightn) in zip(results['confidence'], results['coordinates']):
-        if confidence > CONFIDENCE_THRESHOLD:
+        if confidence > config['CONFIDENCE_THRESHOLD']:
             x, y, x1, y1, x2, y2 = get_coordinates(img, xn, yn, widthn, heightn)
             plot_rectangles1(img, x1,y1,x2,y2,confidence)
-            if(centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE) or centroid_in_zone((x, y), (x1, y1, x2, y2),GRAB_ZONE_2)):
+            if(centroid_in_zone((x, y), (x1, y1, x2, y2),config['GRAB_ZONE']) or centroid_in_zone((x, y), (x1, y1, x2, y2),config['GRAB_ZONE_2'])):
                 grab_counter.update([int(x), int(y)])
-            if(centroid_in_zone((x, y), (x1, y1, x2, y2),FORWARD_ZONE)):
+            if(centroid_in_zone((x, y), (x1, y1, x2, y2),config['FORWARD_ZONE'])):
                 forward_counter.update([int(x), int(y)])
-            if(centroid_in_zone((x, y), (x1, y1, x2, y2),BACKWARD_ZONE)):
+            if(centroid_in_zone((x, y), (x1, y1, x2, y2),config['BACKWARD_ZONE'])):
                 backward_counter.update([int(x), int(y)])
-            if(centroid_in_zone((x, y), (x1, y1, x2, y2),MACHINE_ZONE)):
+            if(centroid_in_zone((x, y), (x1, y1, x2, y2),config['MACHINE_ZONE'])):
                 machine_counter.update([int(x), int(y)])
     current_time = frame_to_hms(fvs.stream.get(cv2.CAP_PROP_POS_FRAMES), frame_rate)
     #---------------
@@ -167,17 +139,16 @@ for _ in tqdm(range(lenght)):
 
 
 
-    overlay_region(img, GRAB_ZONE, alpha=0.5)
-    overlay_region(img, GRAB_ZONE_2, alpha=0.5)
-    overlay_region(img, FORWARD_ZONE, alpha=0.5)
-    overlay_region(img, BACKWARD_ZONE, alpha=0.5)
-    overlay_region(img, MACHINE_ZONE, alpha=0.5)
-    #overlay_region(img, TABLE_ZONE, alpha=0.5)
-    overlay_region(img, TOTAL_STATS_ZONE, alpha=1)
-    overlay_region(img, CURRENT_STATS_ZONE, alpha=1)
+    overlay_region(img, config['GRAB_ZONE'], alpha=0.5)
+    overlay_region(img, config['GRAB_ZONE_2'], alpha=0.5)
+    overlay_region(img, config['FORWARD_ZONE'], alpha=0.5)
+    overlay_region(img, config['BACKWARD_ZONE'], alpha=0.5)
+    overlay_region(img, config['MACHINE_ZONE'], alpha=0.5)
+    overlay_region(img, config['TOTAL_STATS_ZONE'], alpha=1)
+    overlay_region(img, config['CURRENT_STATS_ZONE'], alpha=1)
     #------------------------
-    plot_stats(img, CURRENT_STATS_ZONE, logger.buffer, 'current_stats')
-    plot_stats(img, TOTAL_STATS_ZONE, logger.stats['total'], 'total_stats')
+    plot_stats(img, config['CURRENT_STATS_ZONE'], logger.buffer, 'current_stats')
+    plot_stats(img, config['TOTAL_STATS_ZONE'], logger.stats['total'], 'total_stats')
     #---------------------
     logger.update_logs()
     plot_logs(img, (0, 1060), logger.logs)
