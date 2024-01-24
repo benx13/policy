@@ -226,3 +226,15 @@ def hms_mean(time_list):
     
     # Format the mean as hh:mm:ss
     return f"{hours_mean:02d}:{minutes_mean:02d}:{seconds_mean:02d}"
+
+def get_optica_flow(current, prev):
+    flow = cv2.calcOpticalFlowFarneback(prev, current,  
+                                    None, 
+                                    0.5, 3, 4, 3, 30, 2.5, 0) 
+    magnitude, _ = cv2.cartToPolar(flow[..., 0], flow[..., 1]) 
+    return np.sum(magnitude)
+
+def diffImg(t0, t1, t2):
+  d1 = cv2.absdiff(t2, t1)
+  d2 = cv2.absdiff(t1, t0)
+  return cv2.bitwise_and(d1, d2)

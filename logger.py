@@ -9,7 +9,10 @@ class Logger():
                 'bag_count_based_on_total_number_of_events': 0,
                 'bag_count_based_on_order_of_events': 0,
                 'normalized_bag_count': 0,
-                'average_time_per_bag':0,
+                'average_time_per_bag': 0,
+                'total_machine_time': 0,
+                'average_machine_time_per_bag': 0,
+                'total_bags_according_to_machine_time': 0,
                 'total': {  'grab': 0,
                             'forward': 0,
                             'backward':0,
@@ -18,14 +21,16 @@ class Logger():
                             'events':[]
                 },
                 'per_bag':[],
-                'bag_times':[]
+                'bag_times':[],
+                'bag_machine_times':[]
         }
         self.buffer = {'grab': 0,
         'forward': 0,
-        'backward':0,
-        'machine':0,
+        'backward': 0,
+        'machine': 0,
         'events': [],
-        'bag_time':0
+        'bag_time': 0,
+        'bag_machine_time': 0
         }
         self.logs = []
         self.transition_id = 0
@@ -36,7 +41,8 @@ class Logger():
             'backward':0,
             'machine':0,
             'events': [],
-            'bag_time':0
+            'bag_time':0,
+            'bag_machine_time': 0
             }
 
     def update(self, event, logging_time):
@@ -66,11 +72,17 @@ class Logger():
             self.stats['bag_times'].append(self.buffer['bag_time'])
             self.stats['average_time_per_bag'] = hms_mean(self.stats['bag_times'])
             self.stats['per_bag'].append(self.buffer)
+            self.stats['average_machine_time_per_bag'] = np.mean([bag['bag_machine_time']  for bag in self.stats['per_bag'] if bag['postprocessed_events']['decision']['finished_probability'] > 0.5])
+            self.stats['total_bags_according_to_machine_time'] = self.stats['total_machine_time'] / self.stats['average_machine_time_per_bag']
             self.reset_buffer()
             self.transition_id += 1
 
     def update_logs(self):
         self.logs = list(filter(lambda log: log['frames_left'] > 0, self.logs))
+
+    def update_flow(self, flow):
+        self.stats['total_machine_time'] += 1
+        self.buffer['bag_machine_time'] += 1
 
     def save_results(self):
         with open('output.json', 'w') as fp:

@@ -42,15 +42,28 @@ if skip_time != 0:
     cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
     fvs.stream = cap
 fvs.start()
-
+###################inti_flow###########################
+prev_prev = cv2.cvtColor(fvs.read(), cv2.COLOR_BGR2GRAY)[config['FLOW_ZONE'][1]:config['FLOW_ZONE'][3], config['FLOW_ZONE'][0]:config['FLOW_ZONE'][2]]
+prev = cv2.cvtColor(fvs.read(), cv2.COLOR_BGR2GRAY)[config['FLOW_ZONE'][1]:config['FLOW_ZONE'][3], config['FLOW_ZONE'][0]:config['FLOW_ZONE'][2]]
+prev_diff = diffImg(prev_prev, prev, prev)
 ########################################################
-lenght = int(fvs.stream.get(cv2.CAP_PROP_FRAME_COUNT))-10
+lenght = int(fvs.stream.get(cv2.CAP_PROP_FRAME_COUNT)/1   )-10
 
 print(f'len = {lenght}')
 for _ in tqdm(range(lenght)):
     start = time.time()
     img = fvs.read()
     plot_time_on_frame(img, fvs.stream, frame_rate)
+
+
+    flow_img = img[config['FLOW_ZONE'][1]:config['FLOW_ZONE'][3], config['FLOW_ZONE'][0]:config['FLOW_ZONE'][2]]
+    flow_img = cv2.cvtColor(flow_img, cv2.COLOR_BGR2GRAY)
+    diff = diffImg(prev_prev, prev, flow_img)
+    flow = get_optica_flow(diff, prev_diff)
+    prev_prev = prev
+    prev = flow_img
+    prev_diff = diff
+
 
     transition_counter.reset()
     grab_counter.reset()
@@ -91,6 +104,7 @@ for _ in tqdm(range(lenght)):
             if(centroid_in_zone((x, y), (x1, y1, x2, y2),config['MACHINE_ZONE'])):
                 machine_counter.update([int(x), int(y)])
     current_time = frame_to_hms(fvs.stream.get(cv2.CAP_PROP_POS_FRAMES), frame_rate)
+    logger.update_flow(1 if flow > 50 else 0)
     #---------------
     flagXtransition = transition_counter.apply()
     if(flagXtransition):
