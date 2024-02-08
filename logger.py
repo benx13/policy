@@ -28,6 +28,7 @@ class Logger():
         'forward': 0,
         'backward': 0,
         'machine': 0,
+        'transition': 0,
         'events': [],
         'bag_time': 0,
         'bag_machine_time': 0
@@ -40,6 +41,7 @@ class Logger():
             'forward': 0,
             'backward':0,
             'machine':0,
+            'transition':0,
             'events': [],
             'bag_time':0,
             'bag_machine_time': 0
@@ -57,6 +59,8 @@ class Logger():
                 'total_frames':250
                 })
         if event == 'transition':
+            self.buffer[event] += 1
+            self.buffer['events'].append({'event':f"{event[0]}{self.buffer[event]}", 'time':logging_time})
             self.buffer['id'] = self.transition_id
             clean_sequence, sequence_remains, decision, _ = Interpreter([i['event'] for i in self.buffer['events']]).postprocess_sequence()
             self.stats['BAG_COUNT'] += 1 if decision['finished_probability'] > 0.5 else 0
@@ -73,7 +77,7 @@ class Logger():
             self.stats['average_time_per_bag'] = hms_mean(self.stats['bag_times'])
             self.stats['per_bag'].append(self.buffer)
             self.stats['average_machine_time_per_bag'] = np.mean([bag['bag_machine_time']  for bag in self.stats['per_bag'] if bag['postprocessed_events']['decision']['finished_probability'] > 0.5])
-            self.stats['total_bags_according_to_machine_time'] = self.stats['total_machine_time'] / self.stats['average_machine_time_per_bag']
+            #self.stats['total_bags_according_to_machine_time'] = self.stats['total_machine_time'] / self.stats['average_machine_time_per_bag']
             self.reset_buffer()
             self.transition_id += 1
 

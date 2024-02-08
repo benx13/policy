@@ -9,8 +9,8 @@ from counter import Counter
 from logger import Logger
 from imutils.video import FileVideoStream as Fvs
 import yaml
-with open("configs/benchmark1.yaml") as f:
-    config = yaml.load(f, Loader=yaml.FullLoader)
+with open("configs/benchmark8.yaml") as f:
+      config = yaml.load(f, Loader=yaml.FullLoader)
 
 
 logger = Logger()
@@ -19,18 +19,24 @@ logger = Logger()
 ################INIT_TRACKER############################
 grab_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)
 grab_counter = Counter(grab_tracker, config['GRAB_TEMPRATURE'], 100)
+
 transition_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)
 transition_counter = Counter(transition_tracker, config['TRANSITION_TEMPRATURE'], 100)
+
 forward_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=config['FORWARD_DIRECTIONS'])
 forward_counter = Counter(forward_tracker, config['FORWARD_TEMPRATURE'], 100)
-backward_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200, direction=config['BACKWARD_DIRECTIONS'])
+
+backward_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=300)#, direction=config['BACKWARD_DIRECTIONS'])
 backward_counter = Counter(backward_tracker, config['BACKWARD_TEMPRATURE'], 100)
-machine_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200, direction=config['MACHINE_DIRECTIONS'])
+
+machine_tracker = CentroidTracker(maxDisappeared=750, minDistanece=200)#, direction=config['MACHINE_DIRECTIONS'])
 machine_counter = Counter(machine_tracker, config['MACHINE_TEMPRATURE'], 100)
 
 
-model = coremltools.models.MLModel(config['MODEL_PATH'])
-
+if config['BLUE']:
+    model = coremltools.models.MLModel(config['MODEL_PATH_BLUE'])
+else: 
+    model = coremltools.models.MLModel(config['MODEL_PATH'])
 ################INIT_CAP############################
 fvs = Fvs(path=config['VIDEO_FILE'])
 
@@ -47,14 +53,14 @@ prev_prev = cv2.cvtColor(fvs.read(), cv2.COLOR_BGR2GRAY)[config['FLOW_ZONE'][1]:
 prev = cv2.cvtColor(fvs.read(), cv2.COLOR_BGR2GRAY)[config['FLOW_ZONE'][1]:config['FLOW_ZONE'][3], config['FLOW_ZONE'][0]:config['FLOW_ZONE'][2]]
 prev_diff = diffImg(prev_prev, prev, prev)
 ########################################################
-lenght = int(fvs.stream.get(cv2.CAP_PROP_FRAME_COUNT)/1   )-10
+lenght = int(fvs.stream.get(cv2.CAP_PROP_FRAME_COUNT)/1  )-10
 
 print(f'len = {lenght}')
 for _ in tqdm(range(lenght)):
     start = time.time()
     img = fvs.read()
     plot_time_on_frame(img, fvs.stream, frame_rate)
-
+    stop=time.time()
 
     flow_img = img[config['FLOW_ZONE'][1]:config['FLOW_ZONE'][3], config['FLOW_ZONE'][0]:config['FLOW_ZONE'][2]]
     flow_img = cv2.cvtColor(flow_img, cv2.COLOR_BGR2GRAY)
@@ -77,7 +83,7 @@ for _ in tqdm(range(lenght)):
     reds2 = get_red(reds)
 
     if config['BLUE']:
-        blues = get_blue(resized_img)
+        blues = getXwhite(resized_img)
         input = preprocess_img(blues)
     else:
         input = preprocess_img(resized_img)
@@ -126,8 +132,8 @@ for _ in tqdm(range(lenght)):
     if(flagXmachine):
         logger.update('machine', current_time)
     #print(logger.stats)
-
-logger.update('transition', current_time)
+if(logger.stats['total']['events'][-1]['event'][0] != 't'):
+    logger.update('transition', current_time)
 fvs.stop()
 cv2.destroyAllWindows()
 logger.save_results()

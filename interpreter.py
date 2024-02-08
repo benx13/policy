@@ -31,11 +31,28 @@ class Interpreter():
             #print(f'remains after: {self.sequence_remains}')
             #print(f'remains after: {self.clean_sequence}')
             #print(self.handle_dict)
-            self.handle_dict['finished_probability'] = (self.handle_dict['gmf'] + self.handle_dict['gbm'])/4 - (self.handle_dict['extra'] + self.handle_dict['missing']) * 0.05
 
         else:
             self.sequence_remains = self.sequence
             self.handle_dict['extra'] = len(self.sequence_remains)
+
+        if('t' in self.sequence_remains):
+            self.handle_dict['extra'] -=1
+            self.sequence_remains.remove('t')
+        if('f' in self.sequence_remains and self.handle_dict['gmf'] == 0):
+            self.handle_dict['gmf'] += 1
+            self.handle_dict['extra'] -=1
+            self.sequence_remains.remove('f')
+
+        if(self.handle_dict['gmf'] == 2):
+            self.handle_dict['finished_probability']+=0.55
+        if(self.handle_dict['gmf'] == 1):
+            self.handle_dict['finished_probability']+=0.35
+        if(self.handle_dict['gbm'] == 2):
+            self.handle_dict['finished_probability']+=0.45
+        if(self.handle_dict['gbm'] == 1):
+            self.handle_dict['finished_probability']+=0.35              
+        self.handle_dict['finished_probability'] -= (self.handle_dict['extra'] + self.handle_dict['missing']) * 0.03
 
         return self.clean_sequence, self.sequence_remains, self.handle_dict, self.original_sequence
     

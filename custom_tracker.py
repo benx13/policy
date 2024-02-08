@@ -58,6 +58,7 @@ class CentroidTracker():
 		if new_centroid:
 			if len(self.objects) == 0:
 				self.register(new_centroid)
+				#self.flag = 1
 			else:
 				current_centroid = self.get_centroid()
 				#print(f'centroid: {current_centroid} --> {new_centroid}')
