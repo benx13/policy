@@ -6,6 +6,13 @@ from PIL import Image
 
 lower_blue = np.array([100, 40, 40])  # Lower end of the blue spectrum
 upper_blue = np.array([140, 255, 255])
+
+lower_green = np.array([35, 40, 40])  # Lower end of the green spectrum
+upper_green = np.array([80, 255, 255])
+
+lower_orange = np.array([10, 30, 20])  # Lower end of the orange spectrum
+upper_orange = np.array([25, 255, 255])
+
 lower_white = np.array([0, 0, 200], dtype=np.uint8)
 upper_white = np.array([255, 30, 255], dtype=np.uint8)
 
@@ -13,7 +20,12 @@ lower_red = np.array([0, 0, 200], dtype = "uint8")
 upper_red= np.array([50, 10, 255], dtype = "uint8")
 
 classNames = ["handle"]
-
+def plot_stats_ccurrent(img, zone, stats, label):
+    offset = 0
+    cv2.putText(img, f'{label}', (zone[0], zone[1]+offset), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 6)
+    for k, v in list(stats.items())[:4]:
+        offset+=60
+        cv2.putText(img, f'{k}:{v}', (zone[0], zone[1]+offset), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 6)
 def plot_stats(img, zone, stats, label):
     offset = 0
     cv2.putText(img, f'{label}', (zone[0], zone[1]+offset), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 6)
@@ -42,17 +54,17 @@ def plot_rectangles(img, box, no_label=False):
     confidence = ceil((box.conf[0] * 100)) / 100
     cls = int(box.cls[0])
     if no_label:
-        cv2.putText(img, f'', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 5)
+        cv2.putText(img, f'', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 1)
     else:
-        cv2.putText(img, f'{classNames[cls]} {confidence}', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 5)
-    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 5)
+        cv2.putText(img, f'{classNames[cls]} {confidence}', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 1)
+    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 1)
 
 def plot_rectangles1(img, x1,y1,x2,y2, confidence,no_label=False):
     if no_label:
-        cv2.putText(img, f'', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 5)
+        cv2.putText(img, f'', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 1)
     else:
-        cv2.putText(img, f'{confidence[0]:0.2f}', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 5)
-    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 5)
+        cv2.putText(img, f'{confidence:0.2f}', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 1)
+    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 1)
 
 def frame_to_hms(frame_number, frame_rate):
     # Calculate total seconds
@@ -96,13 +108,13 @@ def centroid_in_zone(centroid, xyxy, zone):
 def overlay_region(img, region, alpha=0.1, color=(0, 0, 255)):
     machine_overlay = np.full_like(img[region[1]:region[3], region[0]:region[2]], (250, 216, 230), dtype=np.uint8)
     cv2.addWeighted(machine_overlay, alpha, img[region[1]:region[3], region[0]:region[2]], 0.5, 0, img[region[1]:region[3], region[0]:region[2]])
-    cv2.rectangle(img, (region[0], region[1]), (region[2], region[3]), color, 3)
+    cv2.rectangle(img, (region[0], region[1]), (region[2], region[3]), color, 1)
 
 def plot_path(img, objects, zone, history):
         for (objectID, centroid) in objects.items():
             text = "ID {}".format(objectID)
             if zone.disappeared[objectID] == 0:
-                cv2.putText(img, text, (centroid[0] - 10, centroid[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 255, 0), 4)
+                #cv2.putText(img, text, (centroid[0] - 10, centroid[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 255, 0), 4)
                 cv2.circle(img, (centroid[0], centroid[1]), 4, (0, 0, 255), -1)
             track = history[objectID]
             track.append((centroid[0] - 10, centroid[1] - 10))
@@ -125,11 +137,18 @@ def plot_time_on_frame(img, cap, fps):
 def preprocess_img(img):
     processed_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return Image.fromarray(processed_img)
-
+def get_orange(img):
+    hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    orange_mask = cv2.inRange(hsv_image, lower_orange, upper_orange)
+    return cv2.bitwise_and(img, img, mask=orange_mask)
 def get_blue(img):
     hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     blue_mask = cv2.inRange(hsv_image, lower_blue, upper_blue)
     return cv2.bitwise_and(img, img, mask=blue_mask)
+def get_green(img):
+    hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    green_mask = cv2.inRange(hsv_image, lower_green, upper_green)
+    return cv2.bitwise_and(img, img, mask=green_mask)
 def get_white(img):
     hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     white_mask = cv2.inRange(hsv_image, lower_white, upper_white)
@@ -144,7 +163,105 @@ def get_red(img):
     red_mask = cv2.inRange(img, lower_red, upper_red)
     return cv2.bitwise_and(img, img, mask=red_mask)
 
-def binary_image(img, threshold_value=180):
+
+def get_geren_from_blue(img):
+    blues = get_blue(img)
+
+    binarize = binary_image(blues)
+    green = cv2.cvtColor(binarize, cv2.COLOR_GRAY2BGR)
+    green[binarize == 255] = [182, 112, 83]
+    greenX = get_green(green)
+    return greenX
+
+def get_geren_from_blue_merged(img):
+    blues = get_blue(img)
+
+    binarize = binary_image(blues)
+    green = cv2.cvtColor(binarize, cv2.COLOR_GRAY2BGR)
+    green[binarize == 255] = [146, 182, 139]
+    greenX = get_green(green)
+
+    hsv_blue = cv2.cvtColor(blues, cv2.COLOR_BGR2HSV)
+    hsv_green = cv2.cvtColor(greenX, cv2.COLOR_BGR2HSV)
+
+    h, s, v = cv2.split(hsv_blue)
+    h2, s2, v2 = cv2.split(hsv_green)
+    h3, s3, v3 = cv2.split(cv2.merge([h2, s, v]))
+    merged_hsv = cv2.merge([h3, s2, v])
+    t = cv2.cvtColor(merged_hsv, cv2.COLOR_HSV2BGR)
+
+    return t
+
+def get_green_from_blue_merged_hue(img):
+    blues = get_blue(img)
+
+    binarize = binary_image(blues)
+    green = cv2.cvtColor(binarize, cv2.COLOR_GRAY2BGR)
+    green[binarize == 255] = [146, 182, 139]
+    greenX = get_green(green)
+
+    hsv_blue = cv2.cvtColor(blues, cv2.COLOR_BGR2HSV)
+    hsv_green = cv2.cvtColor(greenX, cv2.COLOR_BGR2HSV)
+
+    h, s, v = cv2.split(hsv_blue)
+    h2, s2, v2 = cv2.split(hsv_green)
+    merged_hsv = cv2.merge([h2, s, v])
+    t = cv2.cvtColor(merged_hsv, cv2.COLOR_HSV2BGR)
+
+    return t
+
+
+def get_blue_from_green(img):
+    greens = get_green(img)
+
+    binarize = binary_image(greens)
+    blue = cv2.cvtColor(binarize, cv2.COLOR_GRAY2BGR)
+    blue[binarize == 255] = [182, 112, 83]
+    #binarize = binary_image(greens2)
+    blueX = get_blue(blue)
+    return blueX
+
+def get_blue_from_green_merged(img):
+    greens = get_green(img)
+
+    binarize = binary_image(greens)
+    blue = cv2.cvtColor(binarize, cv2.COLOR_GRAY2BGR)
+    #blue[binarize == 255] = [182, 112, 83]
+    blue[binarize == 255] = [102, 54, 21]
+    #binarize = binary_image(greens2)
+    blueX = get_blue(blue)
+
+    hsv_green = cv2.cvtColor(greens, cv2.COLOR_BGR2HSV)
+    hsv_blue = cv2.cvtColor(blueX, cv2.COLOR_BGR2HSV)
+
+    h, s, v = cv2.split(hsv_green)
+    h2, s2, v2 = cv2.split(hsv_blue)
+    h3, s3, v3 = cv2.split(cv2.merge([h2, s, v]))
+    merged_hsv = cv2.merge([h3, s2, v])
+    t = cv2.cvtColor(merged_hsv, cv2.COLOR_HSV2BGR)
+
+    return t
+
+def get_blue_from_green_merged_hue(img):
+    greens = get_green(img)
+
+    binarize = binary_image(greens)
+    blue = cv2.cvtColor(binarize, cv2.COLOR_GRAY2BGR)
+    blue[binarize == 255] = [182, 112, 83]
+    #binarize = binary_image(greens2)
+    blueX = get_blue(blue)
+
+    hsv_green = cv2.cvtColor(greens, cv2.COLOR_BGR2HSV)
+    hsv_blue = cv2.cvtColor(blueX, cv2.COLOR_BGR2HSV)
+
+    h, s, v = cv2.split(hsv_green)
+    h2, s2, v2 = cv2.split(hsv_blue)
+    merged_hsv = cv2.merge([h2, s, v])
+    t = cv2.cvtColor(merged_hsv, cv2.COLOR_HSV2BGR)
+
+    return t
+
+def binary_image(img, threshold_value=50):
     # Convert the image to grayscale
     gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -238,3 +355,51 @@ def diffImg(t0, t1, t2):
   d1 = cv2.absdiff(t2, t1)
   d2 = cv2.absdiff(t1, t0)
   return cv2.bitwise_and(d1, d2)
+
+def getXwhite(img):
+    hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    lower_white = np.array([0,0,168])
+    upper_white = np.array([172,111,255])
+    white_mask = cv2.inRange(hsv_image, lower_white, upper_white)
+    return cv2.bitwise_and(img, img, mask=white_mask)
+
+def plot_keypoints_with_lines(image, keypoints, confidence_threshold=0.5):
+    """
+    Function to plot keypoints and connect them with lines on an image.
+    
+    Parameters:
+    image (numpy array): The image on which to plot keypoints.
+    keypoints (list of tuples): List of (x, y, confidence) tuples representing keypoints.
+    pairs (list of tuples): List of index pairs to connect keypoints.
+    confidence_threshold (float): Threshold for keypoint confidence.
+    """
+    pairs = [
+        (0, 1), (0, 2),  # Connect nose to eyes
+        (1, 3), (2, 4),  # Connect eyes to ears
+        (5, 7), (6, 8),  # Connect shoulders to elbows
+        (7, 9), (8, 10), # Connect elbows to wrists
+        (5, 11), (6, 12), # Connect shoulders to hips
+        (11, 13), (12, 14), # Connect hips to knees
+        (13, 15), (14, 16) # Connect knees to ankles
+    ]
+
+    # Draw keypoints
+    for keypoint in keypoints:
+        x, y, confidence = keypoint
+        if confidence > confidence_threshold:
+            cv2.circle(image, (int(x), int(y)), 3, (0, 255, 0), thickness=-1, lineType=cv2.FILLED)
+
+    # Draw lines between keypoints
+    for pair in pairs:
+        kp1, kp2 = pair
+        if keypoints[kp1][2] > confidence_threshold and keypoints[kp2][2] > confidence_threshold:
+            x1, y1 = int(keypoints[kp1][0]), int(keypoints[kp1][1])
+            x2, y2 = int(keypoints[kp2][0]), int(keypoints[kp2][1])
+            cv2.line(image, (x1, y1), (x2, y2), (0, 255, 255), 2)
+
+
+def is_filled_zone(zone):
+    pass
+
+def get_event_time(event):
+    pass
