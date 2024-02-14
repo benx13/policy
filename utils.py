@@ -7,8 +7,10 @@ from PIL import Image
 lower_blue = np.array([100, 40, 40])  # Lower end of the blue spectrum
 upper_blue = np.array([140, 255, 255])
 
-lower_green = np.array([35, 40, 40])  # Lower end of the green spectrum
-upper_green = np.array([80, 255, 255])
+#lower_green = np.array([35, 40, 40])  # Lower end of the green spectrum
+#upper_green = np.array([80, 255, 255])
+lower_green = np.array([30, 20, 20])  # Lower end of the green spectrum
+upper_green = np.array([100, 255, 255])
 
 lower_orange = np.array([10, 30, 20])  # Lower end of the orange spectrum
 upper_orange = np.array([25, 255, 255])
@@ -18,6 +20,9 @@ upper_white = np.array([255, 30, 255], dtype=np.uint8)
 
 lower_red = np.array([0, 0, 200], dtype = "uint8")
 upper_red= np.array([50, 10, 255], dtype = "uint8")
+
+#green_from_side_blue_to_get_burn = [118, 156, 117]
+green_from_side_blue_to_get_burn = [206, 215, 154]
 
 classNames = ["handle"]
 def plot_stats_ccurrent(img, zone, stats, label):
@@ -194,10 +199,10 @@ def get_geren_from_blue_merged(img):
 
 def get_green_from_blue_merged_hue(img):
     blues = get_blue(img)
-
+    
     binarize = binary_image(blues)
     green = cv2.cvtColor(binarize, cv2.COLOR_GRAY2BGR)
-    green[binarize == 255] = [146, 182, 139]
+    green[binarize == 255] = green_from_side_blue_to_get_burn
     greenX = get_green(green)
 
     hsv_blue = cv2.cvtColor(blues, cv2.COLOR_BGR2HSV)
@@ -209,6 +214,23 @@ def get_green_from_blue_merged_hue(img):
     t = cv2.cvtColor(merged_hsv, cv2.COLOR_HSV2BGR)
 
     return t
+
+def color_burn_green(img):
+    greens = get_green(img)
+
+    binarize = binary_image(greens)
+    mask = cv2.cvtColor(binarize, cv2.COLOR_GRAY2BGR)
+    mask[binarize == 255] = green_from_side_blue_to_get_burn
+
+    base = img.astype(float) / 255.0  # Normalize to 0-1 range
+    blend = mask.astype(float) / 255.0  # Normalize to 0-1 range
+
+    result = 1 - (1 - base) / np.maximum(blend, 1e-10)  # Avoid division by zero
+    #result = base+blend-1 # Avoid division by zero
+    burned_image_uint8 = (result * 255).clip(0, 255).astype(np.uint8) 
+
+    return burned_image_uint8
+
 
 
 def get_blue_from_green(img):
@@ -247,7 +269,7 @@ def get_blue_from_green_merged_hue(img):
 
     binarize = binary_image(greens)
     blue = cv2.cvtColor(binarize, cv2.COLOR_GRAY2BGR)
-    blue[binarize == 255] = [182, 112, 83]
+    blue[binarize == 255] = [161, 110, 60]
     #binarize = binary_image(greens2)
     blueX = get_blue(blue)
 
@@ -261,7 +283,7 @@ def get_blue_from_green_merged_hue(img):
 
     return t
 
-def binary_image(img, threshold_value=50):
+def binary_image(img, threshold_value=20):
     # Convert the image to grayscale
     gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
