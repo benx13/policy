@@ -3,10 +3,13 @@
 class Interpreter():
     def __init__(self, sequence) -> None:
         self.sequence = sequence
+        if len(self.sequence[0]) == 1:
+            self.sequence = [i+'0' for i in self.sequence]
         self.original_sequence = [i for i in self.sequence]
         self.unduped = []
         self.clean_sequence = []
         self.sequence_remains = []
+        self.next_iter = None
         self.handle_dict = {'gbm':0,
                             'gmf':0,
                             'missing':0,
@@ -22,6 +25,13 @@ class Interpreter():
             self.build_sequence()
 
             self.sequence_remains = [i[0] for i in self.sequence_remains]
+            #print('-----')
+            #print(self.sequence_remains)
+            #print(self.handle_dict['extra'])
+            if(len(self.sequence_remains) > 7 and (self.handle_dict['gbm'] == 2 or self.handle_dict['gmf'] == 2)):
+                self.next_iter = self.sequence_remains
+                self.sequence_remains = []
+            #print('-----')
             #print(self.handle_dict)
             #print(f'remains before: {self.sequence_remains}')
             #print(f'clean before: {self.clean_sequence}')
@@ -43,7 +53,10 @@ class Interpreter():
             self.handle_dict['gmf'] += 1
             self.handle_dict['extra'] -=1
             self.sequence_remains.remove('f')
-
+        if('b' in self.sequence_remains and self.handle_dict['gbm'] == 0):
+            self.handle_dict['gbm'] += 1
+            self.handle_dict['extra'] -=1
+            self.sequence_remains.remove('b')
         if(self.handle_dict['gmf'] == 2):
             self.handle_dict['finished_probability']+=0.55
         if(self.handle_dict['gmf'] == 1):
@@ -54,7 +67,7 @@ class Interpreter():
             self.handle_dict['finished_probability']+=0.35              
         self.handle_dict['finished_probability'] -= (self.handle_dict['extra'] + self.handle_dict['missing']) * 0.03
 
-        return self.clean_sequence, self.sequence_remains, self.handle_dict, self.original_sequence
+        return self.clean_sequence, self.sequence_remains, self.handle_dict, self.original_sequence, self.next_iter
     
     def pop_dupes(self):
         for i in range(len(self.sequence) - 1):
@@ -98,14 +111,17 @@ class Interpreter():
             event1, x = self.parse_element(self.sequence[i])
             event2, y = self.parse_element(self.sequence[i + 1])
             event3, z = self.parse_element(self.sequence[i + 2])
-            #print(f'{event1}{x} -> {event2}{y} -> {event3}{z}')   
             if [event1, event2, event3] == ['g', 'b', 'm']:# and x == y and y == z:
+                if(self.handle_dict['gbm'] == 2):
+                    continue
                 self.handle_dict['gbm'] += 1
                 self.clean_sequence.append(((event1, x), (event2, y), (event3, z)))
                 self.sequence_remains.remove(f'{event1}{x}')
                 self.sequence_remains.remove(f'{event2}{y}')
                 self.sequence_remains.remove(f'{event3}{z}')
             if [event1, event2, event3] == ['g', 'm', 'f']:# and x == y and y == z:
+                if(self.handle_dict['gmf'] == 2):
+                    continue
                 self.handle_dict['gmf'] += 1
                 self.clean_sequence.append(((event1, x), (event2, y), (event3, z)))
                 self.sequence_remains.remove(f'{event1}{x}')
@@ -153,7 +169,9 @@ class Interpreter():
 '''
 
 events = [event.split(' -> ') for event in 
-['g1 -> m1 -> f1 -> g2 -> b2 -> m2 -> g3 -> m3 -> f3 -> g4 -> b4 -> m4', 
+['g1 -> m1 -> b1 -> f1 -> b2 -> g2 -> m2 -> f2 -> b3 -> m3 -> f3 -> m4 -> t1',
+ 'm1 -> f1 -> g1 -> b1 -> m2 -> g2 -> m3 -> f2 -> g3 -> b2 -> m4 -> f3 -> g4 -> b3 -> m5 -> m6 -> m7 -> f4 -> b4 -> m8 -> f5 -> g5 -> b5 -> m9 -> t1',
+ 'g1 -> m1 -> f1 -> g2 -> b2 -> m2 -> g3 -> m3 -> f3 -> g4 -> b4 -> m4', 
  'b2 -> m1 -> f1 -> b4 -> m2',
  'g1 -> m1 -> f1 -> g2 -> b2 -> m2 -> g3 -> m3 -> g4 -> f3 -> g5 -> b4 -> m4', 
  'g1 -> f1 -> g2 -> b2 -> m1 -> g3 -> m2 -> f3 -> g4 -> g5 -> b4 -> m3',
@@ -164,14 +182,23 @@ events = [event.split(' -> ') for event in
  'g1 -> m1 -> f1 -> m2 -> b2 -> m3 -> g3 -> m4 -> f3 -> g4 -> b4 -> m5',
  'g1 -> m1 -> f1 -> g2 -> b2 -> m2 -> g3 -> m3 -> f3 -> g4 -> b4 -> m4 -> g5']
 ]
-
-for i in events[:]:
+for i in events[:1]:
     print('--------------------------------------------------------')
-    clean, remains, count, og = Interpreter(i).postprocess_sequence()
-
+    print(i)
+    print()
+    print()
+    clean, remains, count, og, next_iter = Interpreter(i).postprocess_sequence()
     print(f'og:         --->  {og}')
     print(f'clean:      --->  {clean}')
     print(f'remains:    --->  {remains}')
+    print(f'next_iter:    --->  {next_iter}')
     print(f'ditc:       --->  {count}')
-
-'''
+    print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+    print()
+    if next_iter:
+        clean, remains, count, og, next_iter = Interpreter(next_iter).postprocess_sequence()
+        print(f'og:         --->  {og}')
+        print(f'clean:      --->  {clean}')
+        print(f'remains:    --->  {remains}')
+        print(f'next_iter:    --->  {next_iter}')
+        print(f'ditc:       --->  {count}')'''
