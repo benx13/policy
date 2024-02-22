@@ -10,7 +10,7 @@ class Post():
     def __init__(self, config, outdir) -> None:
         with open(config) as f:
             self.config = yaml.load(f, Loader=yaml.FullLoader)
-        self.outdir = outdir
+        self.out_dir = outdir
         
         self.logger = Logger()
         self.grab_tracker = CentroidTracker(maxDisappeared=400, minDistanece=200)
@@ -43,7 +43,7 @@ class Post():
         flagXtransition = self.transition_counter.apply()
         if(flagXtransition):
             self.logger.update('transition', current_time)
-            self.logger.save_results(self.outdir)
+            self.logger.save_results(self.out_dir)
 
         flagXgrab = self.grab_counter.apply()
         if(flagXgrab):
