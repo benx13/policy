@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 
 # Load a model
-model = YOLO('models/bluenano.pt')  # load a custom trained model
+model = YOLO('models/blue_feb_3X++.pt')  # load a custom trained model
 
 # Export the model
-model.export(format='coreml', imgsz=[224, 384], int8=True, nms=True)
+model.export(format='coreml', imgsz=[640, 640], int8=False, nms=True)

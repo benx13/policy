@@ -28,7 +28,8 @@ class Interpreter():
             #print('-----')
             #print(self.sequence_remains)
             #print(self.handle_dict['extra'])
-            if(len(self.sequence_remains) > 7 and (self.handle_dict['gbm'] == 2 or self.handle_dict['gmf'] == 2)):
+            #print(self.sequence_remains)
+            if(len(self.sequence_remains) > 8 and (self.handle_dict['gbm'] + self.handle_dict['gmf'] > 2)):
                 self.next_iter = self.sequence_remains
                 self.sequence_remains = []
             #print('-----')
@@ -65,7 +66,7 @@ class Interpreter():
             self.handle_dict['finished_probability']+=0.45
         if(self.handle_dict['gbm'] == 1):
             self.handle_dict['finished_probability']+=0.35              
-        self.handle_dict['finished_probability'] -= (self.handle_dict['extra'] + self.handle_dict['missing']) * 0.03
+        self.handle_dict['finished_probability'] -= (self.handle_dict['extra'] + self.handle_dict['missing']) * 0.02
 
         return self.clean_sequence, self.sequence_remains, self.handle_dict, self.original_sequence, self.next_iter
     
@@ -167,7 +168,6 @@ class Interpreter():
                     self.handle_dict['missing'] += 1
 
 '''
-
 events = [event.split(' -> ') for event in 
 ['g1 -> m1 -> b1 -> f1 -> b2 -> g2 -> m2 -> f2 -> b3 -> m3 -> f3 -> m4 -> t1',
  'm1 -> f1 -> g1 -> b1 -> m2 -> g2 -> m3 -> f2 -> g3 -> b2 -> m4 -> f3 -> g4 -> b3 -> m5 -> m6 -> m7 -> f4 -> b4 -> m8 -> f5 -> g5 -> b5 -> m9 -> t1',
@@ -182,7 +182,7 @@ events = [event.split(' -> ') for event in
  'g1 -> m1 -> f1 -> m2 -> b2 -> m3 -> g3 -> m4 -> f3 -> g4 -> b4 -> m5',
  'g1 -> m1 -> f1 -> g2 -> b2 -> m2 -> g3 -> m3 -> f3 -> g4 -> b4 -> m4 -> g5']
 ]
-for i in events[:1]:
+for i in [events[1]]:
     print('--------------------------------------------------------')
     print(i)
     print()
@@ -201,4 +201,5 @@ for i in events[:1]:
         print(f'clean:      --->  {clean}')
         print(f'remains:    --->  {remains}')
         print(f'next_iter:    --->  {next_iter}')
-        print(f'ditc:       --->  {count}')'''
+        print(f'ditc:       --->  {count}')
+'''

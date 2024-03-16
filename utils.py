@@ -2,18 +2,25 @@ import cv2
 import numpy as np
 from math import floor, ceil
 from PIL import Image
+from numba import njit
 
+#lower_blue = np.array([100, 40, 40])  # Lower end of the blue spectrum
+#upper_blue = np.array([140, 255, 255])
 
-lower_blue = np.array([100, 40, 40])  # Lower end of the blue spectrum
+lower_blue = np.array([80, 20, 20])  # Lower end of the blue spectrum
 upper_blue = np.array([140, 255, 255])
 
-#lower_green = np.array([35, 40, 40])  # Lower end of the green spectrum
-#upper_green = np.array([80, 255, 255])
-lower_green = np.array([30, 20, 20])  # Lower end of the green spectrum
-upper_green = np.array([100, 255, 255])
+lower_green = np.array([35, 40, 40])  # Lower end of the green spectrum
+upper_green = np.array([80, 255, 255])
+#lower_green = np.array([30, 20, 20])  # Lower end of the green spectrum
+#upper_green = np.array([100, 255, 255])
 
-lower_orange = np.array([10, 30, 20])  # Lower end of the orange spectrum
-upper_orange = np.array([25, 255, 255])
+lower_orange = np.array([10, 50, 50])  # Lower end of the orange spectrum
+upper_orange = np.array([30, 255, 255])
+
+
+lower_yellow = np.array([20, 20, 20])  # Lower end of the yellow spectrum
+upper_yellow = np.array([40, 255, 255])
 
 lower_white = np.array([0, 0, 200], dtype=np.uint8)
 upper_white = np.array([255, 30, 255], dtype=np.uint8)
@@ -21,8 +28,8 @@ upper_white = np.array([255, 30, 255], dtype=np.uint8)
 lower_red = np.array([0, 0, 200], dtype = "uint8")
 upper_red= np.array([50, 10, 255], dtype = "uint8")
 
-#green_from_side_blue_to_get_burn = [118, 156, 117]
-green_from_side_blue_to_get_burn = [206, 215, 154]
+green_from_side_blue_to_get_burn = [118, 156, 117]
+#green_from_side_blue_to_get_burn = [206, 215, 154]
 
 classNames = ["handle"]
 def plot_stats_ccurrent(img, zone, stats, label):
@@ -68,7 +75,7 @@ def plot_rectangles1(img, x1,y1,x2,y2, confidence,no_label=False):
     if no_label:
         cv2.putText(img, f'', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 1)
     else:
-        cv2.putText(img, f'{confidence:0.2f}', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,0,0), 1)
+        cv2.putText(img, f'{confidence:0.2f}', (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 1)
     cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 1)
 
 def frame_to_hms(frame_number, frame_rate):
@@ -136,8 +143,8 @@ def get_coordinates(img, xn, yn, widthn, heightn):
     x2 = int((xn + widthn/2) * img.shape[1])
     y2 = int((yn + heightn/2) * img.shape[0])
     return x, y, x1, y1, x2, y2
-def plot_time_on_frame(img, cap, fps):
-    cv2.putText(img, frame_to_hms(cap.get(cv2.CAP_PROP_POS_FRAMES), fps), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 6)
+def plot_time_on_frame(img, time):
+    cv2.putText(img, time, (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 6)
 
 def preprocess_img(img):
     processed_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -146,6 +153,11 @@ def get_orange(img):
     hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     orange_mask = cv2.inRange(hsv_image, lower_orange, upper_orange)
     return cv2.bitwise_and(img, img, mask=orange_mask)
+def get_yellow(img):
+    hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    yellow_mask = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
+    return cv2.bitwise_and(img, img, mask=yellow_mask)
+
 def get_blue(img):
     hsv_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     blue_mask = cv2.inRange(hsv_image, lower_blue, upper_blue)
@@ -282,7 +294,6 @@ def get_blue_from_green_merged_hue(img):
     t = cv2.cvtColor(merged_hsv, cv2.COLOR_HSV2BGR)
 
     return t
-
 def binary_image(img, threshold_value=20):
     # Convert the image to grayscale
     gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -310,10 +321,10 @@ def print_disappearing_message(frame, zone, message, current_frame, total_frames
 
     # Apply the opacity to the overlay
     cv2.addWeighted(overlay, opacity / 255.0, frame, 1 - opacity / 255.0, 0, frame)
-def plot_logs(img, zone, logs):
+def plot_logs(img, zone, logs, post=''):
     offset = 0
     for log in logs:
-        print_disappearing_message(img, (zone[0], zone[1]+offset), log['message'], log['total_frames'] - log['frames_left'], log['total_frames'])
+        print_disappearing_message(img, (zone[0], zone[1]+offset), f"{post} {log['message']}", log['total_frames'] - log['frames_left'], log['total_frames'])
         log['frames_left'] -= 1
         offset = offset - 50
 
@@ -321,7 +332,6 @@ def mouse_callback(event, x, y, flags, param):
     if event == cv2.EVENT_MOUSEMOVE:
         # Update the window title with the current coordinates of the mouse
         cv2.setWindowTitle('Window', f'Coordinates: ({x}, {y})')
-
 
 def hms_difference(time1, time2):
     # Split the input times into hours, minutes, and seconds

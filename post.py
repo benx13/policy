@@ -7,18 +7,20 @@ import yaml
 import numpy as np
 
 class Post():
-    def __init__(self, config, outdir) -> None:
+    def __init__(self, config) -> None:
         with open(config) as f:
             self.config = yaml.load(f, Loader=yaml.FullLoader)
-        self.out_dir = outdir
-        
+        self.out_dir = self.config['OUTDIR']
+        self.name = self.config['NAME']
         self.logger = Logger()
+
         self.grab_tracker = CentroidTracker(maxDisappeared=400, minDistanece=200)
         self.grab_counter = Counter(self.grab_tracker, self.config['GRAB_TEMPRATURE'], 100)
 
         self.transition_tracker = CentroidTracker(maxDisappeared=2000, minDistanece=200)
-        self.transition_counter = Counter(self.transition_tracker, self.config['TRANSITION_TEMPRATURE'], 100)
-
+        self.transition_counter = Counter(self.transition_tracker, self.config['TRANSITION_TEMPRATURE'], self.config['TRANSITION_MAX'])
+        
+        self.prev_tran = "00:00:00"
         self.forward_tracker = CentroidTracker(maxDisappeared=800, minDistanece=200, direction=self.config['FORWARD_DIRECTIONS'])
         self.forward_counter = Counter(self.forward_tracker, self.config['FORWARD_TEMPRATURE'], 100)
 
@@ -39,11 +41,29 @@ class Post():
         if(centroid_in_zone((x, y), (x1, y1, x2, y2),self.config['MACHINE_ZONE'])):
             self.machine_counter.update([int(x), int(y)])
     
+    def forward_transition(self, current_time):
+        flagXtransition = self.transition_counter.apply()
+        if(flagXtransition):
+            trt = hms_difference(current_time, self.prev_tran)
+            if (int(trt[3])*360 + int(trt[4])*60) > 150:
+                self.prev_tran = current_time
+                print(f'transition {self.name} -->{current_time}')
+                self.logger.update('transition', current_time)
+                self.logger.stats['t2t_list'].append(trt)
+                self.logger.buffer['t2t'] = trt
+                self.logger.save_results(self.out_dir)
+
     def forward(self, current_time):
         flagXtransition = self.transition_counter.apply()
         if(flagXtransition):
-            self.logger.update('transition', current_time)
-            self.logger.save_results(self.out_dir)
+            trt = hms_difference(current_time, self.prev_tran)
+            if (int(trt[3])*360 + int(trt[4])*60) > 150:
+                self.prev_tran = current_time
+                print(f'transition {self.name} -->{current_time}')
+                self.logger.update('transition', current_time)
+                self.logger.stats['t2t_list'].append(trt)
+                self.logger.buffer['t2t'] = trt
+                self.logger.save_results(self.out_dir)
 
         flagXgrab = self.grab_counter.apply()
         if(flagXgrab):
@@ -70,27 +90,24 @@ class Post():
         self.machine_counter.reset()
 
     def update_transition(self, img):
-        self.z1 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_01'][1]:self.config['TRANSITION_ZONE_01'][3], self.config['TRANSITION_ZONE_01'][0]:self.config['TRANSITION_ZONE_01'][2]]))
-        self.z2 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_02'][1]:self.config['TRANSITION_ZONE_02'][3], self.config['TRANSITION_ZONE_02'][0]:self.config['TRANSITION_ZONE_02'][2]]))
-        self.z3 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_03'][1]:self.config['TRANSITION_ZONE_03'][3], self.config['TRANSITION_ZONE_03'][0]:self.config['TRANSITION_ZONE_03'][2]]))
-        self.z4 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_04'][1]:self.config['TRANSITION_ZONE_04'][3], self.config['TRANSITION_ZONE_04'][0]:self.config['TRANSITION_ZONE_04'][2]]))
-        self.z5 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_05'][1]:self.config['TRANSITION_ZONE_05'][3], self.config['TRANSITION_ZONE_05'][0]:self.config['TRANSITION_ZONE_05'][2]]))
-        self.z6 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_06'][1]:self.config['TRANSITION_ZONE_06'][3], self.config['TRANSITION_ZONE_06'][0]:self.config['TRANSITION_ZONE_06'][2]]))
-        self.z7 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_07'][1]:self.config['TRANSITION_ZONE_07'][3], self.config['TRANSITION_ZONE_07'][0]:self.config['TRANSITION_ZONE_07'][2]]))
-        self.z8 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_08'][1]:self.config['TRANSITION_ZONE_08'][3], self.config['TRANSITION_ZONE_08'][0]:self.config['TRANSITION_ZONE_08'][2]]))
-        self.z9 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_09'][1]:self.config['TRANSITION_ZONE_09'][3], self.config['TRANSITION_ZONE_09'][0]:self.config['TRANSITION_ZONE_09'][2]]))
-        self.z10 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_10'][1]:self.config['TRANSITION_ZONE_10'][3], self.config['TRANSITION_ZONE_10'][0]:self.config['TRANSITION_ZONE_10'][2]]))
+        z1 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_01'][1]:self.config['TRANSITION_ZONE_01'][3], self.config['TRANSITION_ZONE_01'][0]:self.config['TRANSITION_ZONE_01'][2]]))
+        z2 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_02'][1]:self.config['TRANSITION_ZONE_02'][3], self.config['TRANSITION_ZONE_02'][0]:self.config['TRANSITION_ZONE_02'][2]]))
+        z3 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_03'][1]:self.config['TRANSITION_ZONE_03'][3], self.config['TRANSITION_ZONE_03'][0]:self.config['TRANSITION_ZONE_03'][2]]))
+        z4 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_04'][1]:self.config['TRANSITION_ZONE_04'][3], self.config['TRANSITION_ZONE_04'][0]:self.config['TRANSITION_ZONE_04'][2]]))
+        z5 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_05'][1]:self.config['TRANSITION_ZONE_05'][3], self.config['TRANSITION_ZONE_05'][0]:self.config['TRANSITION_ZONE_05'][2]]))
+        z6 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_06'][1]:self.config['TRANSITION_ZONE_06'][3], self.config['TRANSITION_ZONE_06'][0]:self.config['TRANSITION_ZONE_06'][2]]))
+        z7 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_07'][1]:self.config['TRANSITION_ZONE_07'][3], self.config['TRANSITION_ZONE_07'][0]:self.config['TRANSITION_ZONE_07'][2]]))
+        z8 = binary_image(get_orange(img[self.config['TRANSITION_ZONE_08'][1]:self.config['TRANSITION_ZONE_08'][3], self.config['TRANSITION_ZONE_08'][0]:self.config['TRANSITION_ZONE_08'][2]]))
 
-        if(np.sum(self.z1)>255*3 and 
-            np.sum(self.z2)>255*3 and 
-            np.sum(self.z3)>255*3 and 
-            np.sum(self.z4)>255*3 and 
-            np.sum(self.z5)>255*3 and
-            np.sum(self.z6)>255*3 and
-            np.sum(self.z7)>255*3 and
-            np.sum(self.z8)>255*3 and
-            np.sum(self.z9)>255*3 and
-            np.sum(self.z10)>255*3 
+        if( np.sum(z1) > 255*self.config['TRANSITION_TRESH'][0] and 
+            np.sum(z2) > 255*self.config['TRANSITION_TRESH'][1] and
+            ( 
+            (1 if np.sum(z3) > 255*self.config['TRANSITION_TRESH'][2] else 0) + 
+            (1 if np.sum(z4) > 255*self.config['TRANSITION_TRESH'][3] else 0) + 
+            (1 if np.sum(z5) > 255*self.config['TRANSITION_TRESH'][4] else 0) + 
+            (1 if np.sum(z6) > 255*self.config['TRANSITION_TRESH'][5] else 0) + 
+            (1 if np.sum(z7) > 255*self.config['TRANSITION_TRESH'][6] else 0) + 
+            (1 if np.sum(z8) > 255*self.config['TRANSITION_TRESH'][7] else 0) ) > self.config['MIN_TRAN']
             ):
                 self.transition_counter.update([1880, 100])
         
