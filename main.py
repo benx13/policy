@@ -12,4 +12,4 @@ def main(config, source, show=False, skip_time=0, live=False):
 
 
 if __name__ == "__main__":
-    main('configs/benchmarkcam14_config', 'videos/benchmark_cam_14.mov', show=False, live=False)
+    main('configs/benchmarkcam11_config', 'videos/benchmark_cam_11.mov', show=True, live=False)
