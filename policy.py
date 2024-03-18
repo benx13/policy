@@ -7,13 +7,14 @@ import yaml
 import datetime
 from post import Post
 import os
+from inference_engine import IE
 
 class policy_plot:
-    def __init__(self, config_dir, source ,cap_skip=0, live=False) -> None:
+    def __init__(self, config_dir, source, model_path,cap_skip=0, live=False, device='mps') -> None:
         self.live = live
         self.posts = self.init_posts(config_dir)
         self.configs = self.init_plot_configs(config_dir)
-        self.model = coremltools.models.MLModel('models/blue_feb_3X++.mlpackage')
+        self.model = IE(model_path, device=device)
         self.init_cv2_window()
         self.cap = self.init_cap(source, cap_skip)
         if live==False and type(source) == str and source.split('.')[-1] in ['mov', 'MOV', 'mp4', 'avi']:
@@ -50,11 +51,6 @@ class policy_plot:
             skip_frames = int(frame_rate * cap_skip)
             cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
         return cap
-    def run_model(self, input):
-        return self.model.predict({'image': input,
-                                'iouThreshold': 0.8, 
-                                'confidenceThreshold': 0.3})
-    
     def preprocess_frame(self, img):
         blues = get_blue(img)
         resized_img = cv2.resize(blues, (640, 640))
@@ -87,7 +83,7 @@ class policy_plot:
 
             input = self.preprocess_frame(img)
             mstart = time.time()
-            results = self.run_model(input)
+            results = self.model.forward(input)
             mstop = time.time()
 
             for confidence, (xn, yn, widthn, heightn) in zip(results['confidence'], results['coordinates']):
@@ -154,7 +150,7 @@ class policy_plot:
 
             input = self.preprocess_frame(img)
             mstart = time.time()
-            results = self.run_model(input)
+            results = self.model.forward(input)
             mstop = time.time()
 
             for confidence, (xn, yn, widthn, heightn) in zip(results['confidence'], results['coordinates']):
@@ -207,10 +203,10 @@ class policy_plot:
         self.close_cap(current_time)
 
 class policy_noplot:
-    def __init__(self, config_dir, source ,cap_skip=0, live=False) -> None:
+    def __init__(self, config_dir, source, model_path ,cap_skip=0, live=False, device='cpu') -> None:
         self.live = live
         self.posts = self.init_posts(config_dir)
-        self.model = coremltools.models.MLModel('models/blue_feb_3X++.mlpackage')
+        self.model = IE(model_path, device=device)
         self.cap = self.init_cap(source, cap_skip)
         if live==False and type(source) == str and source.split('.')[-1] in ['mov', 'MOV', 'mp4', 'avi']:
             self.get_current_time = lambda: frame_to_hms(self.cap.get(cv2.CAP_PROP_POS_FRAMES), self.cap_fps)
@@ -232,10 +228,6 @@ class policy_noplot:
             skip_frames = int(frame_rate * cap_skip)
             cap.set(cv2.CAP_PROP_POS_FRAMES, skip_frames)
         return cap
-    def run_model(self, input):
-        return self.model.predict({'image': input,
-                                'iouThreshold': 0.8, 
-                                'confidenceThreshold': 0.3})
     
     def preprocess_frame(self, img):
         blues = get_blue(img)
@@ -261,13 +253,12 @@ class policy_noplot:
                 post.update_transition(img)
 
             input = self.preprocess_frame(img)
-            results = self.run_model(input)
+            results = self.model.forward(input)
 
-            for confidence, (xn, yn, widthn, heightn) in zip(results['confidence'], results['coordinates']):
-                if confidence > 0.3:
-                    x, y, x1, y1, x2, y2 = get_coordinates(img, xn, yn, widthn, heightn)
-                    for post in self.posts:
-                        post.update_objects((x, y, x1, y1, x2, y2))
+            for xn, yn, widthn, heightn in results['coordinates']:
+                x, y, x1, y1, x2, y2 = get_coordinates(img, xn, yn, widthn, heightn)
+                for post in self.posts:
+                    post.update_objects((x, y, x1, y1, x2, y2))
 
             current_time = frame_to_hms(self.cap.get(cv2.CAP_PROP_POS_FRAMES), self.cap_fps)
             for post in self.posts:
@@ -285,13 +276,12 @@ class policy_noplot:
                     post.update_transition(img)
 
                 input = self.preprocess_frame(img)
-                results = self.run_model(input)
+                results = self.model.forward(input)
 
-                for confidence, (xn, yn, widthn, heightn) in zip(results['confidence'], results['coordinates']):
-                    if confidence > 0.3:
-                        x, y, x1, y1, x2, y2 = get_coordinates(img, xn, yn, widthn, heightn)
-                        for post in self.posts:
-                            post.update_objects((x, y, x1, y1, x2, y2))
+                for xn, yn, widthn, heightn in results['coordinates']:
+                    x, y, x1, y1, x2, y2 = get_coordinates(img, xn, yn, widthn, heightn)
+                    for post in self.posts:
+                        post.update_objects((x, y, x1, y1, x2, y2))
 
                 current_time = frame_to_hms(self.cap.get(cv2.CAP_PROP_POS_FRAMES), self.cap_fps)
                 for post in self.posts:
